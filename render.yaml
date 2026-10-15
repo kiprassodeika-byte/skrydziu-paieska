@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: skrydziu-paieska
+    runtime: python
+    plan: free
+    buildCommand: "echo nereikia"
+    startCommand: python3 server.py
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: CURRENCY
+        value: eur
+      - key: TRAVELPAYOUTS_MARKER
+        sync: false
+      - key: TRAVELPAYOUTS_TOKEN
+        sync: false

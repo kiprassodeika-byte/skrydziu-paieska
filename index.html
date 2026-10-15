@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="lt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skrydžių paieška</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <h1>Raskite skrydį</h1>
+      <p class="sub">Palyginkite kainas ir nusipirkite tiesiai pas aviakompaniją.</p>
+
+      <form id="search" class="card" autocomplete="off">
+        <div class="trip">
+          <label><input type="radio" name="trip" value="oneway" checked> Į vieną pusę</label>
+          <label><input type="radio" name="trip" value="return"> Į abi puses</label>
+        </div>
+        <div class="grid">
+          <div class="field">
+            <label for="from">Iš</label>
+            <input id="from" list="airports" placeholder="Miestas arba kodas" required>
+            <button type="button" id="locate" class="link" title="Nustatyti mano vietą">📍 Mano vieta</button>
+          </div>
+          <button type="button" id="swap" class="swap" aria-label="Sukeisti vietomis">⇄</button>
+          <div class="field">
+            <label for="to">Į</label>
+            <input id="to" list="airports" placeholder="Miestas arba kodas" required>
+          </div>
+          <div class="field">
+            <label for="date">Išvykimas</label>
+            <input id="date" type="date" required>
+          </div>
+          <div class="field" id="returnField" hidden>
+            <label for="returnDate">Grįžimas</label>
+            <input id="returnDate" type="date">
+          </div>
+          <div class="field narrow">
+            <label for="adults">Keleiviai</label>
+            <input id="adults" type="number" min="1" max="9" value="1">
+          </div>
+          <button class="primary" type="submit">Ieškoti</button>
+        </div>
+        <datalist id="airports"></datalist>
+      </form>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="status" class="status" role="status"></div>
+    <div id="toolbar" class="toolbar" hidden>
+      <div class="chips" id="sortChips">
+        <button class="chip active" data-sort="price">Pigiausi</button>
+        <button class="chip" data-sort="duration">Greičiausi</button>
+        <button class="chip" data-sort="depart">Ankstyviausi</button>
+      </div>
+      <label class="check"><input type="checkbox" id="directOnly"> Tik tiesioginiai</label>
+    </div>
+    <div id="results"></div>
+    <p class="demo-note" id="demoNote" hidden>
+      Rodomi <strong>demo duomenys</strong>, ne tikros kainos. Prijunkite skrydžių API faile <code>provider.js</code>, kad matytumėte realias kainas.
+    </p>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="provider.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
