@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 let offers = [];
 let sort = "price";
 let demo = true;
+let nearby = false;
 
 const label = (a) => `${a.city} (${a.code})`;
 const fmtTime = (iso) => new Date(iso).toLocaleTimeString("lt-LT", { hour: "2-digit", minute: "2-digit" });
@@ -78,6 +79,7 @@ $("search").addEventListener("submit", async (e) => {
   }
   offers = result.offers;
   demo = result.demo;
+  nearby = !!result.nearby;
   offers.forEach((o) => (o.from = from.code, o.to = to.code));
   $("demoNote").hidden = !demo;
   $("priceNote").hidden = demo || offers.length === 0;
@@ -101,7 +103,11 @@ function render() {
   list = [...list].sort((a, b) => (key(a) > key(b) ? 1 : -1));
 
   $("toolbar").hidden = offers.length === 0;
-  $("status").textContent = list.length ? `Rasta skrydžių: ${list.length}` : "Pagal šiuos kriterijus skrydžių nerasta.";
+  $("status").textContent = !list.length
+    ? "Pagal šiuos kriterijus skrydžių nerasta. Pabandykite kitą datą arba artimiausią didesnį miestą."
+    : nearby
+      ? `Pasirinktai dienai kainų nerasta, rodome artimiausias datas (${list.length}).`
+      : `Rasta skrydžių: ${list.length}`;
   const cheapest = Math.min(...list.map((o) => o.price));
 
   $("results").innerHTML = list.map((o) => `

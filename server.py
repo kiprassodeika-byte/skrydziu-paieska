@@ -88,6 +88,10 @@ def normalize(item, origin, dest, adults):
     return offer
 
 
+class ApiError(Exception):
+    pass
+
+
 def search(params):
     origin = params.get("from", [""])[0].upper()
     dest = params.get("to", [""])[0].upper()
@@ -103,39 +107,52 @@ def search(params):
     if not TOKEN:
         return 200, {"demo": True, "reason": "no_token"}
 
-    base = {
-        "origin": origin, "destination": dest, "departure_at": date,
-        "currency": CURRENCY, "sorting": "price", "limit": 30, "unique": "false",
-        "one_way": "false" if return_date else "true",
-    }
-    if return_date:
-        base["return_at"] = return_date
-
-    # Du užklausos: visi variantai ir tik tiesioginiai (talpykla kitaip grąžina vos vieną pigiausią)
-    offers, seen = [], set()
-    for extra in ({}, {"direct": "true"}):
-        req = urllib.request.Request(f"{API_URL}?{urllib.parse.urlencode({**base, **extra})}", headers={"X-Access-Token": TOKEN})
-        try:
-            with urllib.request.urlopen(req, timeout=12, context=SSL_CONTEXT) as resp:
-                payload = json.load(resp)
-        except urllib.error.HTTPError as err:
-            return 502, {"error": f"Aviasales API klaida {err.code}" + (" (patikrinkite TRAVELPAYOUTS_TOKEN)" if err.code in (401, 403) else "")}
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
-            if extra:
-                break  # papildoma užklausa nepavyko – pakanka pirmosios
-            return 502, {"error": "Nepavyko pasiekti Aviasales API"}
-        if not payload.get("success", True):
-            return 502, {"error": str(payload.get("error") or "Aviasales API grąžino klaidą")}
-        for item in payload.get("data", []):
+    def collect(departure_at, return_at):
+        """Du užklausos: visi variantai ir tik tiesioginiai (talpykla kitaip grąžina vos vieną pigiausią)."""
+        base = {
+            "origin": origin, "destination": dest, "departure_at": departure_at,
+            "currency": CURRENCY, "sorting": "price", "limit": 30, "unique": "false",
+            "one_way": "false" if return_at else "true",
+        }
+        if return_at:
+            base["return_at"] = return_at
+        found, seen = [], set()
+        for extra in ({}, {"direct": "true"}):
+            req = urllib.request.Request(f"{API_URL}?{urllib.parse.urlencode({**base, **extra})}", headers={"X-Access-Token": TOKEN})
             try:
-                offer = normalize(item, origin, dest, adults)
-            except (KeyError, ValueError, TypeError):
-                continue  # praleidžiame sugadintus įrašus
-            key = (offer["code"], offer["departIso"], offer.get("returnIso"))
-            if key not in seen:
-                seen.add(key)
-                offers.append(offer)
-    return 200, {"demo": False, "offers": offers}
+                with urllib.request.urlopen(req, timeout=12, context=SSL_CONTEXT) as resp:
+                    payload = json.load(resp)
+            except urllib.error.HTTPError as err:
+                raise ApiError(f"Aviasales API klaida {err.code}" + (" (patikrinkite TRAVELPAYOUTS_TOKEN)" if err.code in (401, 403) else ""))
+            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
+                if extra:
+                    break  # papildoma užklausa nepavyko – pakanka pirmosios
+                raise ApiError("Nepavyko pasiekti Aviasales API")
+            if not payload.get("success", True):
+                raise ApiError(str(payload.get("error") or "Aviasales API grąžino klaidą"))
+            for item in payload.get("data", []):
+                try:
+                    offer = normalize(item, origin, dest, adults)
+                except (KeyError, ValueError, TypeError):
+                    continue  # praleidžiame sugadintus įrašus
+                key = (offer["code"], offer["departIso"], offer.get("returnIso"))
+                if key not in seen:
+                    seen.add(key)
+                    found.append(offer)
+        return found
+
+    try:
+        offers = collect(date, return_date)
+        nearby = False
+        if not offers:
+            # Pasirinktai dienai talpykloje nieko nėra – parodome artimiausias to mėnesio dienas
+            offers = collect(date[:7], return_date[:7] if return_date else "")
+            today = datetime.now().date().isoformat()
+            offers = [o for o in offers if o["departIso"][:10] >= today]
+            nearby = bool(offers)
+    except ApiError as err:
+        return 502, {"error": str(err)}
+    return 200, {"demo": False, "offers": offers, "nearby": nearby}
 
 
 # Paprasta užklausų riba vienam IP, kad svetimi robotai neišnaudotų tavo API limito
