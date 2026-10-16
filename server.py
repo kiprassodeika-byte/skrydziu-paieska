@@ -54,14 +54,18 @@ def parse_dt(text):
     return datetime.fromisoformat(text.replace("Z", "+00:00"))
 
 
-def affiliate_link(link):
-    url = AVIASALES + link if link.startswith("/") else link
+def affiliate_link(origin, dest, depart_date, return_date, adults):
+    """Gyvos paieškos nuoroda maršrutui ir datai (ne konkrečiam talpykloje rastam bilietui,
+    kuris dažnai jau išparduotas). Formatas: IŠ + DDMM + Į [+ DDMM grįžimo] + keleiviai."""
+    ddmm = lambda iso: iso[8:10] + iso[5:7]
+    code = f"{origin}{ddmm(depart_date)}{dest}{ddmm(return_date) if return_date else ''}{adults}"
+    url = f"{AVIASALES}/search/{code}"
     if MARKER:
-        url += ("&" if "?" in url else "?") + urllib.parse.urlencode({"marker": MARKER})
+        url += "?" + urllib.parse.urlencode({"marker": MARKER})
     return url
 
 
-def normalize(item, adults):
+def normalize(item, origin, dest, adults):
     """Aviasales įrašas -> mūsų formatas (žr. provider.js)."""
     depart = parse_dt(item["departure_at"])
     minutes = int(item.get("duration_to") or item.get("duration") or 0)
@@ -76,7 +80,7 @@ def normalize(item, adults):
         "stops": int(item.get("transfers") or 0),
         "price": round(float(item["price"]) * adults),
         "currency": CURRENCY.upper(),
-        "url": affiliate_link(item.get("link", "")),
+        "url": affiliate_link(origin, dest, item["departure_at"][:10], (item.get("return_at") or "")[:10], adults),
     }
     if item.get("return_at"):
         offer["returnIso"] = parse_dt(item["return_at"]).isoformat()
@@ -124,7 +128,7 @@ def search(params):
             return 502, {"error": str(payload.get("error") or "Aviasales API grąžino klaidą")}
         for item in payload.get("data", []):
             try:
-                offer = normalize(item, adults)
+                offer = normalize(item, origin, dest, adults)
             except (KeyError, ValueError, TypeError):
                 continue  # praleidžiame sugadintus įrašus
             key = (offer["code"], offer["departIso"], offer.get("returnIso"))

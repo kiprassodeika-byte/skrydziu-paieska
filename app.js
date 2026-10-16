@@ -80,6 +80,7 @@ $("search").addEventListener("submit", async (e) => {
   demo = result.demo;
   offers.forEach((o) => (o.from = from.code, o.to = to.code));
   $("demoNote").hidden = !demo;
+  $("priceNote").hidden = demo || offers.length === 0;
   $("demoNote").innerHTML = (result.notice ? `${result.notice} ` : "") +
     "Rodomi <strong>demo duomenys</strong>, ne tikros kainos. Įrašykite Travelpayouts raktus į <code>.env</code> (žr. README).";
   render();
@@ -117,7 +118,7 @@ function render() {
       </div>
       <div class="buy">
         <div class="price">${o.price} ${o.currency === "EUR" || !o.currency ? "€" : o.currency}</div>
-        <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? `Pirkti pas ${esc(o.airline)} ↗` : "Peržiūrėti ir pirkti ↗"}</a>
+        <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? `Pirkti pas ${esc(o.airline)} ↗` : "Tikrinti kainą ir pirkti ↗"}</a>
       </div>
     </article>`).join("");
 }
