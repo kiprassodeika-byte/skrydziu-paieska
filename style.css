@@ -121,3 +121,18 @@ main { padding-bottom: 56px; }
 .live a { color: var(--brand); font-weight: 600; }
 .demo-note { font-size: 13px; color: var(--muted); text-align: center; margin: 12px 0; }
 code { background: #eef2fa; padding: 1px 6px; border-radius: 6px; }
+
+/* Paieškos forma: dvi eilutės, kad niekas neišlįstų ir laukeliai būtų vienodo aukščio */
+.sgrid { display: grid; gap: 12px; }
+.srow1 { display: grid; grid-template-columns: minmax(0, 1fr) 42px minmax(0, 1fr); gap: 12px; align-items: end; }
+.srow2 { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.srow2 .field { flex: 1 1 150px; min-width: 0; }
+.srow2 .field.narrow { flex: 0 1 110px; }
+.srow2 .primary { flex: 0 0 auto; min-width: 150px; grid-column: auto; white-space: nowrap; }
+.field .link { position: absolute; top: 0; right: 2px; font-size: 12px; padding: 0; }
+@media (max-width: 719px) {
+  .srow1 { grid-template-columns: minmax(0, 1fr); }
+  .srow1 .swap { display: none; }
+  .srow2 .primary { flex: 1 1 100%; }
+}
+input[type=text], input:not([type]), input[type=date], input[type=number], select { height: 48px; }

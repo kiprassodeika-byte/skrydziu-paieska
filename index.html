@@ -21,30 +21,34 @@
           <label><input type="radio" name="trip" value="oneway" checked> Į vieną pusę</label>
           <label><input type="radio" name="trip" value="return"> Į abi puses</label>
         </div>
-        <div class="grid">
-          <div class="field">
-            <label for="from">Iš</label>
-            <input id="from" list="airports" placeholder="Miestas arba kodas" required>
-            <button type="button" id="locate" class="link" title="Nustatyti mano vietą">📍 Mano vieta</button>
+        <div class="sgrid">
+          <div class="srow1">
+            <div class="field">
+              <label for="from">Iš</label>
+              <button type="button" id="locate" class="link" title="Nustatyti mano vietą">📍 Mano vieta</button>
+              <input id="from" list="airports" placeholder="Miestas arba kodas" required>
+            </div>
+            <button type="button" id="swap" class="swap" aria-label="Sukeisti vietomis">⇄</button>
+            <div class="field">
+              <label for="to">Į</label>
+              <input id="to" list="airports" placeholder="Miestas arba kodas" required>
+            </div>
           </div>
-          <button type="button" id="swap" class="swap" aria-label="Sukeisti vietomis">⇄</button>
-          <div class="field">
-            <label for="to">Į</label>
-            <input id="to" list="airports" placeholder="Miestas arba kodas" required>
+          <div class="srow2">
+            <div class="field">
+              <label for="date">Išvykimas</label>
+              <input id="date" type="date" required>
+            </div>
+            <div class="field" id="returnField" hidden>
+              <label for="returnDate">Grįžimas</label>
+              <input id="returnDate" type="date">
+            </div>
+            <div class="field narrow">
+              <label for="adults">Keleiviai</label>
+              <input id="adults" type="number" min="1" max="9" value="1">
+            </div>
+            <button class="primary" type="submit">Ieškoti</button>
           </div>
-          <div class="field">
-            <label for="date">Išvykimas</label>
-            <input id="date" type="date" required>
-          </div>
-          <div class="field" id="returnField" hidden>
-            <label for="returnDate">Grįžimas</label>
-            <input id="returnDate" type="date">
-          </div>
-          <div class="field narrow">
-            <label for="adults">Keleiviai</label>
-            <input id="adults" type="number" min="1" max="9" value="1">
-          </div>
-          <button class="primary" type="submit">Ieškoti</button>
         </div>
         <datalist id="airports"></datalist>
       </form>
@@ -53,8 +57,8 @@
         <div class="grid explore">
           <div class="field">
             <label for="exFrom">Iš</label>
-            <input id="exFrom" list="airports" placeholder="Miestas arba kodas" required>
             <button type="button" id="exLocate" class="link">📍 Mano vieta</button>
+            <input id="exFrom" list="airports" placeholder="Miestas arba kodas" required>
           </div>
           <div class="field">
             <label for="exBudget">Biudžetas (€)</label>
