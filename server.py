@@ -188,6 +188,46 @@ def search(params):
     return 200, {"demo": False, "offers": offers, "nearby": nearby, "exactCount": exact_count, "liveUrl": live_url}
 
 
+def probe(params):
+    """LAIKINA diagnostika: kiek pasiūlymų grąžina skirtingi Aviasales parametrai (be jautrių duomenų)."""
+    origin = params.get("from", [""])[0].upper()
+    dest = params.get("to", [""])[0].upper()
+    date = params.get("date", [""])[0]
+    if not (IATA.match(origin) and IATA.match(dest) and DATE.match(date)) or not TOKEN:
+        return 400, {"error": "bad"}
+    variants = {
+        "numatytas": {},
+        "show_false": {"show_to_affiliates": "false"},
+        "market_lt": {"market": "lt"},
+        "market_lt_show_false": {"market": "lt", "show_to_affiliates": "false"},
+        "market_us": {"market": "us"},
+        "market_us_show_false": {"market": "us", "show_to_affiliates": "false"},
+    }
+
+    def one(item):
+        name, extra = item
+        out = {}
+        for label, dep in (("diena", date), ("menuo", date[:7])):
+            q = {"origin": origin, "destination": dest, "departure_at": dep, "currency": CURRENCY,
+                 "sorting": "price", "limit": 1000, "unique": "false", "one_way": "true", **extra}
+            req = urllib.request.Request(f"{API_URL}?{urllib.parse.urlencode(q)}", headers={"X-Access-Token": TOKEN})
+            try:
+                with urllib.request.urlopen(req, timeout=15, context=SSL_CONTEXT) as resp:
+                    data = json.load(resp).get("data", [])
+                out[label] = len(data)
+                if label == "diena":
+                    out["diena_aviakompanijos"] = sorted({d.get("airline", "?") for d in data})
+                else:
+                    out["menuo_dienos"] = len({d.get("departure_at", "")[:10] for d in data})
+                    out["turi_pasirinkta_diena"] = any(d.get("departure_at", "")[:10] == date for d in data)
+            except Exception as err:  # diagnostika: rodome klaidos tipą
+                out[label] = f"klaida: {type(err).__name__} {getattr(err, 'code', '')}"
+        return name, out
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        return 200, dict(pool.map(one, variants.items()))
+
+
 MONTH = re.compile(r"^\d{4}-\d{2}$")
 
 
@@ -276,6 +316,11 @@ class Handler(BaseHTTPRequestHandler):
             if rate_limited(self.client_ip()):
                 return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
             status, body = search(urllib.parse.parse_qs(parsed.query))
+            return self.send(status, body)
+        if parsed.path == "/api/_probe":
+            if rate_limited(self.client_ip()):
+                return self.send(429, {"error": "Per daug užklausų."})
+            status, body = probe(urllib.parse.parse_qs(parsed.query))
             return self.send(status, body)
         if parsed.path == "/api/explore":
             if rate_limited(self.client_ip()):
