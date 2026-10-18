@@ -140,7 +140,7 @@ function render() {
   $("results").innerHTML = list.map((o) => `
     <article class="offer">
       <div>
-        <div class="airline">${esc(o.airline)}${o.exact ? '<span class="tag">Jūsų data</span>' : ""}${o.price === cheapest ? '<span class="tag">Pigiausias</span>' : ""}</div>
+        <div class="airline">${esc(o.airline)}${o.source === "google" ? '<span class="tag">Gyva kaina</span>' : o.exact ? '<span class="tag">Jūsų data</span>' : ""}${o.price === cheapest ? '<span class="tag">Pigiausias</span>' : ""}</div>
         <div class="times">
           <span class="t">${o.timeUnknown ? fmtDate(o.departIso) : (o.departLocal ?? fmtTime(o.departIso))}</span>
           <span class="line"><span>${o.durationMin ? fmtDur(o.durationMin) : "laikas tikslinamas pardavėjo puslapyje"}</span></span>
@@ -152,7 +152,7 @@ function render() {
       <div class="buy">
         <div class="price">${o.price} ${o.currency === "EUR" || !o.currency ? "€" : o.currency}</div>
         <div class="pl">${o.returnIso ? "kaina į abi puses" : "į vieną pusę"}</div>
-        <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? `Pirkti pas ${esc(o.airline)} ↗` : "Tikrinti kainą ir pirkti ↗"}</a>
+        <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? `Pirkti pas ${esc(o.airline)} ↗` : o.source === "google" ? "Atidaryti Google Flights ↗" : "Tikrinti kainą ir pirkti ↗"}</a>
       </div>
     </article>`).join("");
 }

@@ -25,6 +25,14 @@ Be raktų svetainė veikia **demo režimu** (išgalvotos kainos).
 
 `.env` niekada nekelk į viešą saugyklą ir niekam nesiųsk.
 
+## Gyvos kainos tiksliai dienai (neprivaloma): Google Flights per SerpApi
+
+Aviasales talpykla neturi visų skrydžių. Jei nustatysite `SERPAPI_KEY`, paieškos tikslią dieną svetainė papildomai paims gyvas Google Flights kainas ([serpapi.com](https://serpapi.com), nemokamas planas). Tos dienos rezultatai su žyma „Gyva kaina“ pakeičia talpyklos įrašus, o mygtukas atidaro Google Flights.
+
+- `SERPAPI_KEY`: jūsų raktas (Render → Environment, ne kode).
+- `SERPAPI_MONTHLY_CAP`: didžiausias iškvietimų skaičius per mėnesį (numatyta 200), kad neviršytumėte nemokamo limito.
+- Rezultatai kešuojami 15 min., todėl pasikartojančios paieškos limito nevartoja.
+
 ## Režimai
 
 - **Ieškoti skrydžio**: konkretus maršrutas ir data.
