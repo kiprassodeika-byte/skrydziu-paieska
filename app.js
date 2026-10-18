@@ -151,6 +151,7 @@ function render() {
       </div>
       <div class="buy">
         <div class="price">${o.price} ${o.currency === "EUR" || !o.currency ? "€" : o.currency}</div>
+        <div class="pl">${o.returnIso ? "kaina į abi puses" : "į vieną pusę"}</div>
         <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? `Pirkti pas ${esc(o.airline)} ↗` : "Tikrinti kainą ir pirkti ↗"}</a>
       </div>
     </article>`).join("");

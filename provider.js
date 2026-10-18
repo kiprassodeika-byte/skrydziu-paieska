@@ -21,7 +21,7 @@ function seeded(str) {
   };
 }
 
-async function searchFlightsDemo({ from, to, date, adults }) {
+async function searchFlightsDemo({ from, to, date, adults, returnDate }) {
   const a = AIRPORTS.find((x) => x.code === from);
   const b = AIRPORTS.find((x) => x.code === to);
   const km = haversineKm(a, b);
@@ -43,7 +43,7 @@ async function searchFlightsDemo({ from, to, date, adults }) {
       const stops = km < 1500 ? (rand() < 0.15 ? 1 : 0) : km < 5000 ? (rand() < 0.45 ? 1 : 0) : 1;
       const flightMin = Math.round((km / 780) * 60 + 30 + stops * (70 + rand() * 120));
       const base = 25 + km * 0.07 * al.factor;
-      const price = Math.round((base * (0.8 + rand() * 0.5) * urgency * adults) / 1) ;
+      const price = Math.round((base * (0.8 + rand() * 0.5) * urgency * adults * (returnDate ? 1.85 : 1)) / 1);
       const hour = 5 + Math.floor(rand() * 17);
       const minute = Math.floor(rand() * 12) * 5;
       const dep = new Date(`${date}T00:00:00`);
@@ -53,6 +53,7 @@ async function searchFlightsDemo({ from, to, date, adults }) {
         airline: al.name, code: al.code, url: al.url,
         departIso: dep.toISOString(), arriveIso: arr.toISOString(),
         durationMin: flightMin, stops, price, currency: "EUR",
+        ...(returnDate ? { returnIso: new Date(`${returnDate}T12:00:00`).toISOString() } : {}),
       });
     }
   }

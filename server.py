@@ -178,6 +178,8 @@ def search(params):
     def v1_calendar(month):
         """prices/calendar: {data: įrašas} – pigiausias skrydis kiekvienai dienai."""
         q = {"origin": origin, "destination": dest, "depart_date": month, "calendar_type": "departure_date", "currency": CURRENCY}
+        if return_date:
+            q["return_date"] = return_date[:7]
         data = get_json(f"{V1}/calendar", q).get("data") or {}
         return [{**item, "transfers": item.get("transfers", item.get("number_of_changes", 0))}
                 for item in data.values() if str(item.get("departure_at", ""))[:7] in months]
@@ -237,7 +239,8 @@ def search(params):
             if key not in best or offer["price"] < best[key]["price"]:
                 offer["exact"] = offer["departIso"][:10] == date
                 best[key] = offer
-    offers = list(best.values())
+    # Aviasales senesni endpoint'ai maišo kainas į vieną ir į abi puses – paliekame tik prašomą tipą
+    offers = [o for o in best.values() if bool(o.get("returnIso")) == bool(return_date)]
     offers.sort(key=lambda o: (o["departIso"], o["price"]))
     offers = offers[:400]
     exact_count = sum(1 for o in offers if o["exact"])
