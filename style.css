@@ -60,3 +60,12 @@ main { margin-top: -36px; padding-bottom: 48px; }
 @media (max-width: 560px) { .offer { grid-template-columns: 1fr; } .buy { text-align: left; display: flex; align-items: center; justify-content: space-between; } .buy a { margin-top: 0; } }
 .demo-note { font-size: 13px; color: var(--muted); text-align: center; margin-top: 24px; }
 code { background: var(--line); padding: 1px 5px; border-radius: 4px; }
+
+.modes { display: flex; gap: 8px; margin-bottom: 16px; }
+.mode { border: 1px solid rgba(255,255,255,.5); background: transparent; color: #fff; border-radius: 999px; padding: 8px 18px; font: inherit; cursor: pointer; }
+.mode.active { background: #fff; color: #0b3d91; border-color: #fff; font-weight: 600; }
+select { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); font: inherit; }
+@media (min-width: 720px) { .grid.explore { grid-template-columns: 1fr 160px 200px auto auto; } }
+@media (max-width: 719px) { .grid.explore > :nth-child(1) { grid-column: 1 / -1; } .grid.explore > .exdirect, .grid.explore > .primary { grid-column: 1 / -1; } }
+.exdirect { padding-bottom: 12px; }
+.dest .name { font-size: 20px; font-weight: 700; }

@@ -155,6 +155,58 @@ def search(params):
     return 200, {"demo": False, "offers": offers, "nearby": nearby}
 
 
+MONTH = re.compile(r"^\d{4}-\d{2}$")
+
+
+def explore(params):
+    """Pigiausios kryptys iš vieno oro uosto (vienas pasiūlymas kiekvienai krypčiai)."""
+    origin = params.get("from", [""])[0].upper()
+    month = params.get("month", [""])[0]
+    direct = params.get("direct", ["0"])[0] == "1"
+    try:
+        budget = int(params.get("budget", ["0"])[0])
+    except ValueError:
+        budget = 0
+    if not IATA.match(origin) or (month and not MONTH.match(month)):
+        return 400, {"error": "Neteisingi paieškos parametrai"}
+    if not TOKEN:
+        return 200, {"demo": True, "reason": "no_token"}
+
+    query = {"origin": origin, "currency": CURRENCY, "sorting": "price", "limit": 100,
+             "unique": "true", "one_way": "true"}
+    if month:
+        query["departure_at"] = month
+    if direct:
+        query["direct"] = "true"
+    req = urllib.request.Request(f"{API_URL}?{urllib.parse.urlencode(query)}", headers={"X-Access-Token": TOKEN})
+    try:
+        with urllib.request.urlopen(req, timeout=15, context=SSL_CONTEXT) as resp:
+            payload = json.load(resp)
+    except urllib.error.HTTPError as err:
+        return 502, {"error": f"Aviasales API klaida {err.code}"}
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
+        return 502, {"error": "Nepavyko pasiekti Aviasales API"}
+    if not payload.get("success", True):
+        return 502, {"error": str(payload.get("error") or "Aviasales API grąžino klaidą")}
+
+    today = datetime.now().date().isoformat()
+    best = {}  # kryptis -> pigiausias pasiūlymas
+    for item in payload.get("data", []):
+        dest = (item.get("destination") or item.get("destination_airport") or "").upper()
+        if not IATA.match(dest) or dest == origin:
+            continue
+        try:
+            offer = normalize(item, origin, dest, 1)
+        except (KeyError, ValueError, TypeError):
+            continue
+        if offer["departIso"][:10] < today or (budget and offer["price"] > budget):
+            continue
+        offer["dest"] = dest
+        if dest not in best or offer["price"] < best[dest]["price"]:
+            best[dest] = offer
+    return 200, {"demo": False, "destinations": sorted(best.values(), key=lambda o: o["price"])}
+
+
 # Paprasta užklausų riba vienam IP, kad svetimi robotai neišnaudotų tavo API limito
 RATE_LIMIT, RATE_WINDOW = 20, 60  # užklausų per sekundžių langą
 _hits = {}
@@ -191,6 +243,11 @@ class Handler(BaseHTTPRequestHandler):
             if rate_limited(self.client_ip()):
                 return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
             status, body = search(urllib.parse.parse_qs(parsed.query))
+            return self.send(status, body)
+        if parsed.path == "/api/explore":
+            if rate_limited(self.client_ip()):
+                return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
+            status, body = explore(urllib.parse.parse_qs(parsed.query))
             return self.send(status, body)
         name = "index.html" if parsed.path == "/" else parsed.path.lstrip("/")
         if name not in PUBLIC_FILES:

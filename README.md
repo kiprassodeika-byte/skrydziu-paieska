@@ -25,6 +25,11 @@ Be raktų svetainė veikia **demo režimu** (išgalvotos kainos).
 
 `.env` niekada nekelk į viešą saugyklą ir niekam nesiųsk.
 
+## Režimai
+
+- **Ieškoti skrydžio**: konkretus maršrutas ir data.
+- **Kur nuskristi?**: įvedate išvykimo oro uostą, biudžetą ir mėnesį, o svetainė parodo pigiausias kryptis (vienas pasiūlymas kiekvienai krypčiai). Naudoja `/api/explore`.
+
 ## Ką reikia žinoti
 
 - Aviasales Data API grąžina **talpykloje saugomas kainas** (ką vartotojai rado per paskutines ~48 val.), ne gyvą prieinamumą. Galutinė kaina pirkimo puslapyje gali skirtis.

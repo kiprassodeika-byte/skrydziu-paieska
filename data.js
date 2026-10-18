@@ -57,3 +57,33 @@ window.AIRLINES = [
   { code: "EK", name: "Emirates", type: "longhaul", factor: 1.2, url: "https://www.emirates.com/lt/lithuanian/" },
   { code: "QR", name: "Qatar Airways", type: "longhaul", factor: 1.15, url: "https://www.qatarairways.com/lt-lt" },
 ];
+
+// Papildomi miestų pavadinimai (IATA kodas -> lietuviškas vardas) krypčių sąrašui.
+// Kas čia nėra, rodomas pats kodas.
+window.CITY_NAMES = {
+  LON: "Londonas", PAR: "Paryžius", NYC: "Niujorkas", MIL: "Milanas", ROM: "Roma", STO: "Stokholmas",
+  LGW: "Londonas (Gatwick)", LTN: "Londonas (Luton)", ORY: "Paryžius (Orly)", BVA: "Paryžius (Beauvais)",
+  SXF: "Berlynas", HAM: "Hamburgas", DUS: "Diuseldorfas", CGN: "Kelnas", STR: "Štutgartas", NUE: "Niurnbergas",
+  EIN: "Eindhovenas", RTM: "Roterdamas", CRL: "Briuselis (Charleroi)", GVA: "Ženeva", BSL: "Bazelis",
+  MLA: "Malta", LCA: "Larnaka", PFO: "Pafas", HER: "Heraklionas", SKG: "Salonikai", RHO: "Rodas", CFU: "Korfu",
+  SPU: "Splitas", DBV: "Dubrovnikas", ZAG: "Zagrebas", LJU: "Liubliana", BEG: "Belgradas", SOF: "Sofija",
+  OTP: "Bukareštas", CLJ: "Kluž-Napoka", BTS: "Bratislava", GDN: "Gdanskas", WRO: "Vroclavas", POZ: "Poznanė",
+  KTW: "Katovicai", LUZ: "Liublinas", RZE: "Ževuvas", AGP: "Malaga", ALC: "Alikantė", PMI: "Maljorka",
+  IBZ: "Ibiza", TFS: "Tenerifė", LPA: "Gran Kanarija", SVQ: "Sevilija", VLC: "Valensija", OPO: "Porto",
+  FAO: "Faras", NCE: "Nica", MRS: "Marselis", LYS: "Lionas", TLS: "Tulūza", BOD: "Bordo", NAP: "Neapolis",
+  VCE: "Venecija", BLQ: "Bolonija", PSA: "Piza", CTA: "Katanija", PMO: "Palermas", CAG: "Kaljaris", BGY: "Milanas (Bergamas)",
+  EDI: "Edinburgas", MAN: "Mančesteris", BHX: "Birmingemas", GLA: "Glazgas", BRS: "Bristolis", LPL: "Liverpulis",
+  BLL: "Billundas", GOT: "Geteborgas", BGO: "Bergenas", TRF: "Sandefjordas", TKU: "Turku", RVN: "Rovaniemis",
+  KEF: "Reikjavikas", TRD: "Trondheimas", AAR: "Orhusas", MMX: "Malmė", NYO: "Stokholmas (Skavsta)",
+  TLV: "Tel Avivas", AMM: "Amanas", CAI: "Kairas", HRG: "Hurgada", SSH: "Šarm el Šeichas", RAK: "Marakešas",
+  AUH: "Abu Dabis", DOH: "Doha", TBS: "Tbilisis", EVN: "Jerevanas", GYD: "Baku", KBP: "Kijevas",
+  BOS: "Bostonas", MIA: "Majamis", SFO: "San Franciskas", WAS: "Vašingtonas", YTO: "Toronas", YMQ: "Monrealis",
+  BKK: "Bankokas", DMK: "Bankokas (Don Mueang)", HKT: "Puketas", SIN: "Singapūras", KUL: "Kuala Lumpūras",
+  DPS: "Balis", DEL: "Delis", BOM: "Mumbajus", CMB: "Kolombas", MLE: "Male", HKG: "Honkongas", ICN: "Seulas",
+  PEK: "Pekinas", PVG: "Šanchajus", NRT: "Tokijas (Narita)", TYO: "Tokijas", OSA: "Osaka", SYD: "Sidnėjus",
+  JNB: "Johanesburgas", CPT: "Keiptaunas", GRU: "San Paulas", GIG: "Rijus de Žaneiras", EZE: "Buenos Airės",
+};
+window.destName = (code) => {
+  const a = AIRPORTS.find((x) => x.code === code);
+  return a ? a.city : (CITY_NAMES[code] || code);
+};

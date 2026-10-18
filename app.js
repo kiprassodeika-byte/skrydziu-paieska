@@ -39,19 +39,21 @@ document.querySelectorAll("input[name=trip]").forEach((r) =>
 function nearestAirport(lat, lon) {
   return AIRPORTS.reduce((best, a) => (haversineKm({ lat, lon }, a) < haversineKm({ lat, lon }, best) ? a : best));
 }
-$("locate").addEventListener("click", () => {
+function locateInto(input) {
   if (!navigator.geolocation) return ($("status").textContent = "Naršyklė nepalaiko vietos nustatymo.");
   $("status").textContent = "Nustatoma jūsų vieta…";
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const a = nearestAirport(pos.coords.latitude, pos.coords.longitude);
-      $("from").value = label(a);
+      input.value = label(a);
       $("status").textContent = `Artimiausias oro uostas: ${a.city} (${a.code})`;
     },
     () => ($("status").textContent = "Nepavyko nustatyti vietos. Įveskite išvykimo miestą ranka."),
     { timeout: 8000 }
   );
-});
+}
+$("locate").addEventListener("click", () => locateInto($("from")));
+$("exLocate").addEventListener("click", () => locateInto($("exFrom")));
 
 $("swap").addEventListener("click", () => {
   [$("from").value, $("to").value] = [$("to").value, $("from").value];
@@ -124,6 +126,66 @@ function render() {
       </div>
       <div class="buy">
         <div class="price">${o.price} ${o.currency === "EUR" || !o.currency ? "€" : o.currency}</div>
+        <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? `Pirkti pas ${esc(o.airline)} ↗` : "Tikrinti kainą ir pirkti ↗"}</a>
+      </div>
+    </article>`).join("");
+}
+
+// ---- Režimai: paieška / „Kur nuskristi?“ ----
+function setMode(explore) {
+  $("modeSearch").classList.toggle("active", !explore);
+  $("modeExplore").classList.toggle("active", explore);
+  $("search").hidden = explore;
+  $("explore").hidden = !explore;
+  $("toolbar").hidden = true;
+  $("results").innerHTML = "";
+  $("status").textContent = "";
+  $("demoNote").hidden = true;
+  $("priceNote").hidden = true;
+}
+$("modeSearch").addEventListener("click", () => setMode(false));
+$("modeExplore").addEventListener("click", () => setMode(true));
+
+// Mėnesių sąrašas: „Bet kada“ + kiti 12 mėnesių
+$("exMonth").innerHTML = '<option value="">Bet kada</option>' + Array.from({ length: 12 }, (_, i) => {
+  const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+  const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return `<option value="${value}">${d.toLocaleDateString("lt-LT", { year: "numeric", month: "long" })}</option>`;
+}).join("");
+
+$("explore").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const from = findAirport($("exFrom").value);
+  if (!from) return ($("status").textContent = "Pasirinkite išvykimo oro uostą iš pasiūlymų sąrašo.");
+  const budget = Math.max(0, +$("exBudget").value || 0);
+  $("results").innerHTML = "";
+  $("status").textContent = `Ieškoma krypčių iš ${from.city}…`;
+  let result;
+  try {
+    result = await exploreFlights({ from: from.code, month: $("exMonth").value, budget, direct: $("exDirect").checked });
+  } catch (err) {
+    return ($("status").textContent = "Nepavyko gauti krypčių. Bandykite dar kartą.");
+  }
+  demo = result.demo;
+  $("demoNote").hidden = !demo;
+  $("demoNote").innerHTML = (result.notice ? `${result.notice} ` : "") +
+    "Rodomi <strong>demo duomenys</strong>, ne tikros kainos. Įrašykite Travelpayouts raktus į <code>.env</code> (žr. README).";
+  $("priceNote").hidden = demo || result.destinations.length === 0;
+  renderExplore(result.destinations, from, budget);
+});
+
+function renderExplore(list, from, budget) {
+  $("status").textContent = list.length
+    ? `Kryptys iš ${from.city}${budget ? ` iki ${budget} €` : ""}: ${list.length}`
+    : "Pagal šiuos kriterijus krypčių nerasta. Padidinkite biudžetą, pasirinkite „Bet kada“ arba kitą oro uostą.";
+  $("results").innerHTML = list.map((o, i) => `
+    <article class="offer dest">
+      <div>
+        <div class="name">${esc(destName(o.dest))}${i === 0 ? '<span class="tag">Pigiausia</span>' : ""}</div>
+        <div class="meta">${from.code} → ${esc(o.dest)} · ${fmtDate(o.departIso)} · ${o.stops === 0 ? "Tiesioginis" : `${o.stops} persėdimas`} · ${esc(o.airline)}</div>
+      </div>
+      <div class="buy">
+        <div class="price">nuo ${o.price} ${o.currency === "EUR" || !o.currency ? "€" : o.currency}</div>
         <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? `Pirkti pas ${esc(o.airline)} ↗` : "Tikrinti kainą ir pirkti ↗"}</a>
       </div>
     </article>`).join("");

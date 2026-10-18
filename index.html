@@ -10,7 +10,11 @@
   <header class="hero">
     <div class="wrap">
       <h1>Raskite skrydį</h1>
-      <p class="sub">Palyginkite kainas ir nusipirkite tiesiai pas aviakompaniją.</p>
+      <p class="sub">Palyginkite kainas ir nusipirkite tiesiai pas pardavėją.</p>
+      <div class="modes" role="tablist">
+        <button type="button" class="mode active" id="modeSearch" role="tab">Ieškoti skrydžio</button>
+        <button type="button" class="mode" id="modeExplore" role="tab">Kur nuskristi?</button>
+      </div>
 
       <form id="search" class="card" autocomplete="off">
         <div class="trip">
@@ -43,6 +47,26 @@
           <button class="primary" type="submit">Ieškoti</button>
         </div>
         <datalist id="airports"></datalist>
+      </form>
+
+      <form id="explore" class="card" autocomplete="off" hidden>
+        <div class="grid explore">
+          <div class="field">
+            <label for="exFrom">Iš</label>
+            <input id="exFrom" list="airports" placeholder="Miestas arba kodas" required>
+            <button type="button" id="exLocate" class="link">📍 Mano vieta</button>
+          </div>
+          <div class="field">
+            <label for="exBudget">Biudžetas (€)</label>
+            <input id="exBudget" type="number" min="10" max="5000" step="10" value="100">
+          </div>
+          <div class="field">
+            <label for="exMonth">Kada</label>
+            <select id="exMonth"></select>
+          </div>
+          <label class="check exdirect"><input type="checkbox" id="exDirect"> Tik tiesioginiai</label>
+          <button class="primary" type="submit">Rodyti kryptis</button>
+        </div>
       </form>
     </div>
   </header>
