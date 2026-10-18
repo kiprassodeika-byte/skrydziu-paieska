@@ -1,15 +1,25 @@
 const $ = (id) => document.getElementById(id);
 let offers = [];
-let sort = "price";
+let sort = "depart";
+let exSort = "depart";
+let exState = null;
 let demo = true;
 let nearby = false;
 
 const label = (a) => `${a.city} (${a.code})`;
 const fmtTime = (iso) => new Date(iso).toLocaleTimeString("lt-LT", { hour: "2-digit", minute: "2-digit" });
-const fmtDate = (iso) => new Date(iso).toLocaleDateString("lt-LT", { month: "short", day: "numeric" });
+// Data kaip YYYY-MM-DD, imama tiesiai iš ISO eilutės (oro uosto vietos data, ne naršyklės laiko juostos)
+const fmtDate = (iso) => iso.slice(0, 10);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const safeUrl = (u) => (/^https:\/\//.test(u) ? esc(u) : "#");
 const fmtDur =(m) => `${Math.floor(m / 60)} val. ${String(m % 60).padStart(2, "0")} min.`;
+
+// Rikiavimas: pagal datą (ankstyviausia pirma), kainą arba trukmę; lygiais – pagal kainą
+const when = (o) => Date.parse(o.departIso);
+function byKey(kind, duration) {
+  const key = { depart: when, price: (o) => o.price, duration }[kind];
+  return (a, b) => key(a) - key(b) || a.price - b.price || when(a) - when(b);
+}
 
 // Oro uostų pasiūlymai laukeliuose
 $("airports").innerHTML = AIRPORTS.map((a) => `<option value="${label(a)}">${a.country}</option>`).join("");
@@ -101,8 +111,7 @@ $("directOnly").addEventListener("change", render);
 
 function render() {
   let list = offers.filter((o) => !$("directOnly").checked || o.stops === 0);
-  const key = { price: (o) => o.price, duration: (o) => o.durationMin, depart: (o) => o.departIso }[sort];
-  list = [...list].sort((a, b) => (key(a) > key(b) ? 1 : -1));
+  list = [...list].sort(byKey(sort, (o) => o.durationMin));
 
   $("toolbar").hidden = offers.length === 0;
   $("status").textContent = !list.length
@@ -138,6 +147,8 @@ function setMode(explore) {
   $("search").hidden = explore;
   $("explore").hidden = !explore;
   $("toolbar").hidden = true;
+  $("exToolbar").hidden = true;
+  exState = null;
   $("results").innerHTML = "";
   $("status").textContent = "";
   $("demoNote").hidden = true;
@@ -159,6 +170,7 @@ $("explore").addEventListener("submit", async (e) => {
   if (!from) return ($("status").textContent = "Pasirinkite išvykimo oro uostą iš pasiūlymų sąrašo.");
   const budget = Math.max(0, +$("exBudget").value || 0);
   $("results").innerHTML = "";
+  $("exToolbar").hidden = true;
   $("status").textContent = `Ieškoma krypčių iš ${from.city}…`;
   let result;
   try {
@@ -171,17 +183,30 @@ $("explore").addEventListener("submit", async (e) => {
   $("demoNote").innerHTML = (result.notice ? `${result.notice} ` : "") +
     "Rodomi <strong>demo duomenys</strong>, ne tikros kainos. Įrašykite Travelpayouts raktus į <code>.env</code> (žr. README).";
   $("priceNote").hidden = demo || result.destinations.length === 0;
-  renderExplore(result.destinations, from, budget);
+  exState = { list: result.destinations, from, budget };
+  renderExplore();
 });
 
-function renderExplore(list, from, budget) {
+document.querySelectorAll("#exSortChips .chip").forEach((c) =>
+  c.addEventListener("click", () => {
+    exSort = c.dataset.sort;
+    document.querySelectorAll("#exSortChips .chip").forEach((x) => x.classList.toggle("active", x === c));
+    if (exState) renderExplore();
+  })
+);
+
+function renderExplore() {
+  const { from, budget } = exState;
+  const list = [...exState.list].sort(byKey(exSort));
+  const cheapest = Math.min(...list.map((o) => o.price));
+  $("exToolbar").hidden = list.length === 0;
   $("status").textContent = list.length
     ? `Kryptys iš ${from.city}${budget ? ` iki ${budget} €` : ""}: ${list.length}`
     : "Pagal šiuos kriterijus krypčių nerasta. Padidinkite biudžetą, pasirinkite „Bet kada“ arba kitą oro uostą.";
-  $("results").innerHTML = list.map((o, i) => `
+  $("results").innerHTML = list.map((o) => `
     <article class="offer dest">
       <div>
-        <div class="name">${esc(destName(o.dest))}${i === 0 ? '<span class="tag">Pigiausia</span>' : ""}</div>
+        <div class="name">${esc(destName(o.dest))}${o.price === cheapest ? '<span class="tag">Pigiausia</span>' : ""}</div>
         <div class="meta">${from.code} → ${esc(o.dest)} · ${fmtDate(o.departIso)} · ${o.stops === 0 ? "Tiesioginis" : `${o.stops} persėdimas`} · ${esc(o.airline)}</div>
       </div>
       <div class="buy">

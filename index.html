@@ -75,11 +75,17 @@
     <div id="status" class="status" role="status"></div>
     <div id="toolbar" class="toolbar" hidden>
       <div class="chips" id="sortChips">
-        <button class="chip active" data-sort="price">Pigiausi</button>
+        <button class="chip active" data-sort="depart">Pagal datą</button>
+        <button class="chip" data-sort="price">Pigiausi</button>
         <button class="chip" data-sort="duration">Greičiausi</button>
-        <button class="chip" data-sort="depart">Ankstyviausi</button>
       </div>
       <label class="check"><input type="checkbox" id="directOnly"> Tik tiesioginiai</label>
+    </div>
+    <div id="exToolbar" class="toolbar" hidden>
+      <div class="chips" id="exSortChips">
+        <button class="chip active" data-sort="depart">Pagal datą</button>
+        <button class="chip" data-sort="price">Pigiausios</button>
+      </div>
     </div>
     <p class="demo-note" id="priceNote" hidden>
       Kainos orientacinės: jos rastos neseniai, todėl galutinė kaina ir likę bilietai patikrinami pardavėjo puslapyje.
