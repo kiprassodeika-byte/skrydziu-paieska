@@ -69,3 +69,6 @@ select { width: 100%; padding: 12px; border: 1px solid var(--line); border-radiu
 @media (max-width: 719px) { .grid.explore > :nth-child(1) { grid-column: 1 / -1; } .grid.explore > .exdirect, .grid.explore > .primary { grid-column: 1 / -1; } }
 .exdirect { padding-bottom: 12px; }
 .dest .name { font-size: 20px; font-weight: 700; }
+
+.live { text-align: center; font-size: 14px; margin: 4px 0 12px; color: var(--muted); }
+.live a { color: var(--brand); font-weight: 600; }

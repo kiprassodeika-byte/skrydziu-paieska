@@ -12,6 +12,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -111,7 +112,7 @@ def search(params):
         """Du užklausos: visi variantai ir tik tiesioginiai (talpykla kitaip grąžina vos vieną pigiausią)."""
         base = {
             "origin": origin, "destination": dest, "departure_at": departure_at,
-            "currency": CURRENCY, "sorting": "price", "limit": 30, "unique": "false",
+            "currency": CURRENCY, "sorting": "price", "limit": 1000, "unique": "false",
             "one_way": "false" if return_at else "true",
         }
         if return_at:
@@ -141,18 +142,50 @@ def search(params):
                     found.append(offer)
         return found
 
+    # Langai: tiksli diena + visas jos mėnuo (+ gretimas mėnuo, jei diena arti mėnesio ribos).
+    # Daugiau variantų = daugiau matoma, nes talpykla kiekvienai dienai turi skirtingus įrašus.
+    windows = [(date, return_date, True), (date[:7], return_date[:7] if return_date else "", False)]
+    year, month_no, day = int(date[:4]), int(date[5:7]), int(date[8:10])
+    if not return_date:
+        neighbor = None
+        if day >= 20:
+            neighbor = (year + (month_no == 12), 1 if month_no == 12 else month_no + 1)
+        elif day <= 10 and (year, month_no) > (datetime.now().year, datetime.now().month):
+            neighbor = (year - (month_no == 1), 12 if month_no == 1 else month_no - 1)
+        if neighbor:
+            windows.append((f"{neighbor[0]:04d}-{neighbor[1]:02d}", "", False))
+
+    def run(window):
+        try:
+            return collect(window[0], window[1])
+        except ApiError:
+            if window[2]:
+                raise  # tiksliai dienai klaida svarbi; papildomi langai gali tylomis nepavykti
+            return []
+
     try:
-        offers = collect(date, return_date)
-        nearby = False
-        if not offers:
-            # Pasirinktai dienai talpykloje nieko nėra – parodome artimiausias to mėnesio dienas
-            offers = collect(date[:7], return_date[:7] if return_date else "")
-            today = datetime.now().date().isoformat()
-            offers = [o for o in offers if o["departIso"][:10] >= today]
-            nearby = bool(offers)
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(run, windows))
     except ApiError as err:
         return 502, {"error": str(err)}
-    return 200, {"demo": False, "offers": offers, "nearby": nearby}
+
+    today = datetime.now().date().isoformat()
+    best = {}  # tas pats skrydis keliuose languose -> paliekame pigiausią kainą
+    for found in results:
+        for offer in found:
+            key = (offer["code"], offer["departIso"], offer.get("returnIso"))
+            if offer["departIso"][:10] < today:
+                continue
+            if key not in best or offer["price"] < best[key]["price"]:
+                offer["exact"] = offer["departIso"][:10] == date
+                best[key] = offer
+    offers = list(best.values())
+    offers.sort(key=lambda o: (o["departIso"], o["price"]))
+    offers = offers[:400]
+    exact_count = sum(1 for o in offers if o["exact"])
+    nearby = exact_count == 0 and bool(offers)
+    live_url = affiliate_link(origin, dest, date, return_date, adults)
+    return 200, {"demo": False, "offers": offers, "nearby": nearby, "exactCount": exact_count, "liveUrl": live_url}
 
 
 MONTH = re.compile(r"^\d{4}-\d{2}$")

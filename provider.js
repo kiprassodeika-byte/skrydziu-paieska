@@ -74,7 +74,7 @@ async function searchFlights(params) {
         const al = AIRLINES.find((a) => a.code === o.code);
         return { ...o, airline: al ? al.name : o.code };
       });
-      return { offers, demo: false, notice: "", nearby: !!body.nearby };
+      return { offers, demo: false, notice: "", nearby: !!body.nearby, liveUrl: body.liveUrl || "" };
     }
     if (!res.ok) notice = body.error || "Serverio klaida.";
   } catch (e) {
