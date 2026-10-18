@@ -195,37 +195,50 @@ def probe(params):
     date = params.get("date", [""])[0]
     if not (IATA.match(origin) and IATA.match(dest) and DATE.match(date)) or not TOKEN:
         return 400, {"error": "bad"}
-    variants = {
-        "numatytas": {},
-        "show_false": {"show_to_affiliates": "false"},
-        "market_lt": {"market": "lt"},
-        "market_lt_show_false": {"market": "lt", "show_to_affiliates": "false"},
-        "market_us": {"market": "us"},
-        "market_us_show_false": {"market": "us", "show_to_affiliates": "false"},
+    base = "https://api.travelpayouts.com"
+    month = date[:7]
+    tests = {
+        "v3_be_one_way": (f"{API_URL}", {"origin": origin, "destination": dest, "departure_at": month, "currency": CURRENCY, "limit": 1000, "unique": "false"}),
+        "v3_abi_puses_menuo": (f"{API_URL}", {"origin": origin, "destination": dest, "departure_at": month, "return_at": f"{int(month[:4]) + (month[5:] == '12')}-{(int(month[5:]) % 12) + 1:02d}", "one_way": "false", "currency": CURRENCY, "limit": 1000, "unique": "false"}),
+        "v1_calendar": (f"{base}/v1/prices/calendar", {"origin": origin, "destination": dest, "depart_date": date, "calendar_type": "departure_date", "currency": CURRENCY}),
+        "v1_calendar_menuo": (f"{base}/v1/prices/calendar", {"origin": origin, "destination": dest, "depart_date": month, "calendar_type": "departure_date", "currency": CURRENCY}),
+        "v1_cheap": (f"{base}/v1/prices/cheap", {"origin": origin, "destination": dest, "depart_date": date, "currency": CURRENCY}),
+        "v1_direct": (f"{base}/v1/prices/direct", {"origin": origin, "destination": dest, "depart_date": date, "currency": CURRENCY}),
+        "v2_week_matrix": (f"{base}/v2/prices/week-matrix", {"origin": origin, "destination": dest, "depart_date": date, "currency": CURRENCY, "show_to_affiliates": "false"}),
+        "v2_month_matrix": (f"{base}/v2/prices/month-matrix", {"origin": origin, "destination": dest, "month": month + "-01", "currency": CURRENCY, "show_to_affiliates": "false"}),
+        "v2_latest": (f"{base}/v2/prices/latest", {"origin": origin, "destination": dest, "beginning_of_period": month + "-01", "period_type": "month", "one_way": "true", "currency": CURRENCY, "limit": 1000, "show_to_affiliates": "false"}),
     }
 
+    def flat(data):
+        """Skirtingų endpoint'ų atsakymus paverčiame į (data, kaina) sąrašą."""
+        out = []
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if isinstance(v, dict):
+                    if "price" in v or "value" in v:
+                        out.append((str(v.get("departure_at") or v.get("depart_date") or k)[:10], v.get("price") or v.get("value")))
+                    else:
+                        out.extend(flat(v))
+        elif isinstance(data, list):
+            for v in data:
+                if isinstance(v, dict):
+                    out.append((str(v.get("departure_at") or v.get("depart_date") or "")[:10], v.get("price") or v.get("value")))
+        return out
+
     def one(item):
-        name, extra = item
-        out = {}
-        for label, dep in (("diena", date), ("menuo", date[:7])):
-            q = {"origin": origin, "destination": dest, "departure_at": dep, "currency": CURRENCY,
-                 "sorting": "price", "limit": 1000, "unique": "false", "one_way": "true", **extra}
-            req = urllib.request.Request(f"{API_URL}?{urllib.parse.urlencode(q)}", headers={"X-Access-Token": TOKEN})
-            try:
-                with urllib.request.urlopen(req, timeout=15, context=SSL_CONTEXT) as resp:
-                    data = json.load(resp).get("data", [])
-                out[label] = len(data)
-                if label == "diena":
-                    out["diena_aviakompanijos"] = sorted({d.get("airline", "?") for d in data})
-                else:
-                    out["menuo_dienos"] = len({d.get("departure_at", "")[:10] for d in data})
-                    out["turi_pasirinkta_diena"] = any(d.get("departure_at", "")[:10] == date for d in data)
-            except Exception as err:  # diagnostika: rodome klaidos tipą
-                out[label] = f"klaida: {type(err).__name__} {getattr(err, 'code', '')}"
-        return name, out
+        name, (url, q) = item
+        req = urllib.request.Request(f"{url}?{urllib.parse.urlencode(q)}", headers={"X-Access-Token": TOKEN})
+        try:
+            with urllib.request.urlopen(req, timeout=15, context=SSL_CONTEXT) as resp:
+                payload = json.load(resp)
+            rows = flat(payload.get("data", []))
+            days = sorted({d for d, _ in rows if d})
+            return name, {"įrašų": len(rows), "dienų": len(days), "turi_pasirinkta_diena": date in days, "dienos": days[:12]}
+        except Exception as err:
+            return name, {"klaida": f"{type(err).__name__} {getattr(err, 'code', '')}"}
 
     with ThreadPoolExecutor(max_workers=6) as pool:
-        return 200, dict(pool.map(one, variants.items()))
+        return 200, dict(pool.map(one, tests.items()))
 
 
 MONTH = re.compile(r"^\d{4}-\d{2}$")
