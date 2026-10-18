@@ -142,9 +142,9 @@ function render() {
       <div>
         <div class="airline">${esc(o.airline)}${o.exact ? '<span class="tag">Jūsų data</span>' : ""}${o.price === cheapest ? '<span class="tag">Pigiausias</span>' : ""}</div>
         <div class="times">
-          <span class="t">${o.departLocal ?? fmtTime(o.departIso)}</span>
-          <span class="line"><span>${fmtDur(o.durationMin)}</span></span>
-          ${o.departLocal ? "" : `<span class="t">${fmtTime(o.arriveIso)}</span>`}
+          <span class="t">${o.timeUnknown ? fmtDate(o.departIso) : (o.departLocal ?? fmtTime(o.departIso))}</span>
+          <span class="line"><span>${o.durationMin ? fmtDur(o.durationMin) : "laikas tikslinamas pardavėjo puslapyje"}</span></span>
+          ${o.departLocal || o.timeUnknown ? "" : `<span class="t">${fmtTime(o.arriveIso)}</span>`}
         </div>
         <div class="meta">${o.from} → ${o.to} · ${o.stops === 0 ? "Tiesioginis" : `${o.stops} persėdimas`}${
           o.returnIso ? ` · Grįžimas ${fmtDate(o.returnIso)}` : ""}${demo ? "" : ` · ${fmtDate(o.departIso)}`}</div>

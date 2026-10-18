@@ -75,7 +75,6 @@ def normalize(item, origin, dest, adults):
         "code": item.get("airline", ""),
         "airline": item.get("airline", ""),
         "departIso": depart.isoformat(),
-        "departLocal": item["departure_at"][11:16],  # laikrodžio laikas išvykimo oro uoste
         "arriveIso": arrive.isoformat(),
         "durationMin": minutes,
         "stops": int(item.get("transfers") or 0),
@@ -83,6 +82,10 @@ def normalize(item, origin, dest, adults):
         "currency": CURRENCY.upper(),
         "url": affiliate_link(origin, dest, item["departure_at"][:10], (item.get("return_at") or "")[:10], adults),
     }
+    if item["departure_at"].endswith("Z"):
+        offer["timeUnknown"] = True  # UTC laikas – oro uosto vietos laiko nežinome
+    else:
+        offer["departLocal"] = item["departure_at"][11:16]  # laikrodžio laikas išvykimo oro uoste
     if item.get("return_at"):
         offer["returnIso"] = parse_dt(item["return_at"]).isoformat()
         offer["returnStops"] = int(item.get("return_transfers") or 0)
@@ -142,40 +145,95 @@ def search(params):
                     found.append(offer)
         return found
 
-    # Langai: tiksli diena + visas jos mėnuo (+ gretimas mėnuo, jei diena arti mėnesio ribos).
-    # Daugiau variantų = daugiau matoma, nes talpykla kiekvienai dienai turi skirtingus įrašus.
-    windows = [(date, return_date, True), (date[:7], return_date[:7] if return_date else "", False)]
+    # Mėnesiai: pasirinktos dienos mėnuo (+ gretimas, jei diena arti ribos; tik į vieną pusę)
     year, month_no, day = int(date[:4]), int(date[5:7]), int(date[8:10])
+    months = [date[:7]]
     if not return_date:
-        neighbor = None
         if day >= 20:
-            neighbor = (year + (month_no == 12), 1 if month_no == 12 else month_no + 1)
+            months.append(f"{year + (month_no == 12):04d}-{1 if month_no == 12 else month_no + 1:02d}")
         elif day <= 10 and (year, month_no) > (datetime.now().year, datetime.now().month):
-            neighbor = (year - (month_no == 1), 12 if month_no == 1 else month_no - 1)
-        if neighbor:
-            windows.append((f"{neighbor[0]:04d}-{neighbor[1]:02d}", "", False))
+            months.append(f"{year - (month_no == 1):04d}-{12 if month_no == 1 else month_no - 1:02d}")
 
-    def run(window):
+    # v3 prices_for_dates yra retas (dažnai tuščias), todėl papildome senesniais endpoint'ais,
+    # kurie turi daug daugiau dienų: prices/cheap, prices/direct (tiksli diena) ir prices/calendar (mėnuo).
+    V1 = os.environ.get("TRAVELPAYOUTS_V1_URL", "https://api.travelpayouts.com/v1/prices")  # keičiama tik testams
+
+    def get_json(url, query):
+        req = urllib.request.Request(f"{url}?{urllib.parse.urlencode(query)}", headers={"X-Access-Token": TOKEN})
+        with urllib.request.urlopen(req, timeout=15, context=SSL_CONTEXT) as resp:
+            return json.load(resp)
+
+    def v1_stops(endpoint, dep):
+        """prices/cheap ir prices/direct: {kryptis: {persėdimų_skaičius: įrašas}}."""
+        q = {"origin": origin, "destination": dest, "depart_date": dep, "currency": CURRENCY}
+        if return_date:
+            q["return_date"] = return_date
+        data = get_json(f"{V1}/{endpoint}", q).get("data") or {}
+        found = []
+        for by_stops in data.values():
+            for stops, item in (by_stops or {}).items():
+                found.append({**item, "transfers": int(stops) if str(stops).isdigit() else 0})
+        return found
+
+    def v1_calendar(month):
+        """prices/calendar: {data: įrašas} – pigiausias skrydis kiekvienai dienai."""
+        q = {"origin": origin, "destination": dest, "depart_date": month, "calendar_type": "departure_date", "currency": CURRENCY}
+        data = get_json(f"{V1}/calendar", q).get("data") or {}
+        return [{**item, "transfers": item.get("transfers", item.get("number_of_changes", 0))}
+                for item in data.values() if str(item.get("departure_at", ""))[:7] in months]
+
+    def run(task):
+        kind, a, b, required = task
         try:
-            return collect(window[0], window[1])
+            if kind == "v3":
+                return "v3", collect(a, b)
+            if kind == "cheap":
+                return "v1", v1_stops("cheap", a)
+            if kind == "direct":
+                return "v1", v1_stops("direct", a)
+            return "v1", v1_calendar(a)
         except ApiError:
-            if window[2]:
-                raise  # tiksliai dienai klaida svarbi; papildomi langai gali tylomis nepavykti
-            return []
+            if required:
+                raise  # tiksliai dienai pagrindinė užklausa svarbi; kitos gali tyliai nepavykti
+            return kind, []
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError, AttributeError):
+            return kind, []
 
+    tasks = [("v3", date, return_date, True), ("v3", date[:7], return_date[:7] if return_date else "", False),
+             ("cheap", date, "", False), ("direct", date, "", False)]
+    tasks += [("calendar", m, "", False) for m in months]
     try:
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            results = list(pool.map(run, windows))
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            results = list(pool.map(run, tasks))
     except ApiError as err:
         return 502, {"error": str(err)}
 
     today = datetime.now().date().isoformat()
     best = {}  # tas pats skrydis keliuose languose -> paliekame pigiausią kainą
-    for found in results:
+    v3_days = set()  # (aviakompanija, diena, persėdimai) iš v3, kuri turi tikrą laiką
+    for source, found in results:
+        if source != "v3":
+            continue
         for offer in found:
             key = (offer["code"], offer["departIso"], offer.get("returnIso"))
             if offer["departIso"][:10] < today:
                 continue
+            if key not in best or offer["price"] < best[key]["price"]:
+                offer["exact"] = offer["departIso"][:10] == date
+                best[key] = offer
+            v3_days.add((offer["code"], offer["departIso"][:10], offer["stops"]))
+    for source, found in results:
+        if source == "v3":
+            continue
+        for item in found:
+            try:
+                offer = normalize(item, origin, dest, adults)
+            except (KeyError, ValueError, TypeError):
+                continue
+            day_key = (offer["code"], offer["departIso"][:10], offer["stops"])
+            if offer["departIso"][:10] < today or day_key in v3_days:
+                continue  # v3 jau turi šį skrydį su tikru laiku
+            key = ("v1",) + day_key + (offer.get("returnIso"),)
             if key not in best or offer["price"] < best[key]["price"]:
                 offer["exact"] = offer["departIso"][:10] == date
                 best[key] = offer
@@ -186,59 +244,6 @@ def search(params):
     nearby = exact_count == 0 and bool(offers)
     live_url = affiliate_link(origin, dest, date, return_date, adults)
     return 200, {"demo": False, "offers": offers, "nearby": nearby, "exactCount": exact_count, "liveUrl": live_url}
-
-
-def probe(params):
-    """LAIKINA diagnostika: kiek pasiūlymų grąžina skirtingi Aviasales parametrai (be jautrių duomenų)."""
-    origin = params.get("from", [""])[0].upper()
-    dest = params.get("to", [""])[0].upper()
-    date = params.get("date", [""])[0]
-    if not (IATA.match(origin) and IATA.match(dest) and DATE.match(date)) or not TOKEN:
-        return 400, {"error": "bad"}
-    base = "https://api.travelpayouts.com"
-    month = date[:7]
-    tests = {
-        "v3_be_one_way": (f"{API_URL}", {"origin": origin, "destination": dest, "departure_at": month, "currency": CURRENCY, "limit": 1000, "unique": "false"}),
-        "v3_abi_puses_menuo": (f"{API_URL}", {"origin": origin, "destination": dest, "departure_at": month, "return_at": f"{int(month[:4]) + (month[5:] == '12')}-{(int(month[5:]) % 12) + 1:02d}", "one_way": "false", "currency": CURRENCY, "limit": 1000, "unique": "false"}),
-        "v1_calendar": (f"{base}/v1/prices/calendar", {"origin": origin, "destination": dest, "depart_date": date, "calendar_type": "departure_date", "currency": CURRENCY}),
-        "v1_calendar_menuo": (f"{base}/v1/prices/calendar", {"origin": origin, "destination": dest, "depart_date": month, "calendar_type": "departure_date", "currency": CURRENCY}),
-        "v1_cheap": (f"{base}/v1/prices/cheap", {"origin": origin, "destination": dest, "depart_date": date, "currency": CURRENCY}),
-        "v1_direct": (f"{base}/v1/prices/direct", {"origin": origin, "destination": dest, "depart_date": date, "currency": CURRENCY}),
-        "v2_week_matrix": (f"{base}/v2/prices/week-matrix", {"origin": origin, "destination": dest, "depart_date": date, "currency": CURRENCY, "show_to_affiliates": "false"}),
-        "v2_month_matrix": (f"{base}/v2/prices/month-matrix", {"origin": origin, "destination": dest, "month": month + "-01", "currency": CURRENCY, "show_to_affiliates": "false"}),
-        "v2_latest": (f"{base}/v2/prices/latest", {"origin": origin, "destination": dest, "beginning_of_period": month + "-01", "period_type": "month", "one_way": "true", "currency": CURRENCY, "limit": 1000, "show_to_affiliates": "false"}),
-    }
-
-    def flat(data):
-        """Skirtingų endpoint'ų atsakymus paverčiame į (data, kaina) sąrašą."""
-        out = []
-        if isinstance(data, dict):
-            for k, v in data.items():
-                if isinstance(v, dict):
-                    if "price" in v or "value" in v:
-                        out.append((str(v.get("departure_at") or v.get("depart_date") or k)[:10], v.get("price") or v.get("value")))
-                    else:
-                        out.extend(flat(v))
-        elif isinstance(data, list):
-            for v in data:
-                if isinstance(v, dict):
-                    out.append((str(v.get("departure_at") or v.get("depart_date") or "")[:10], v.get("price") or v.get("value")))
-        return out
-
-    def one(item):
-        name, (url, q) = item
-        req = urllib.request.Request(f"{url}?{urllib.parse.urlencode(q)}", headers={"X-Access-Token": TOKEN})
-        try:
-            with urllib.request.urlopen(req, timeout=15, context=SSL_CONTEXT) as resp:
-                payload = json.load(resp)
-            rows = flat(payload.get("data", []))
-            days = sorted({d for d, _ in rows if d})
-            return name, {"įrašų": len(rows), "dienų": len(days), "turi_pasirinkta_diena": date in days, "dienos": days[:12]}
-        except Exception as err:
-            return name, {"klaida": f"{type(err).__name__} {getattr(err, 'code', '')}"}
-
-    with ThreadPoolExecutor(max_workers=6) as pool:
-        return 200, dict(pool.map(one, tests.items()))
 
 
 MONTH = re.compile(r"^\d{4}-\d{2}$")
@@ -329,11 +334,6 @@ class Handler(BaseHTTPRequestHandler):
             if rate_limited(self.client_ip()):
                 return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
             status, body = search(urllib.parse.parse_qs(parsed.query))
-            return self.send(status, body)
-        if parsed.path == "/api/_probe":
-            if rate_limited(self.client_ip()):
-                return self.send(429, {"error": "Per daug užklausų."})
-            status, body = probe(urllib.parse.parse_qs(parsed.query))
             return self.send(status, body)
         if parsed.path == "/api/explore":
             if rate_limited(self.client_ip()):
