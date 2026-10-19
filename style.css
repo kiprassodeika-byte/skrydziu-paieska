@@ -176,3 +176,40 @@ input[type=text], input:not([type]), input[type=date], input[type=number], selec
 .grouphead::before, .grouphead::after { content: ""; flex: 1; max-width: 90px; height: 1px; background: var(--line); }
 .grouphead span { font-size: 12px; font-weight: 600; color: var(--brand-ink); background: #ffe9db; border: 1px solid #ffd7bf; border-radius: 999px; padding: 1px 9px; }
 .offer .tag { background: #fff0d9; color: #9a5a00; border-color: #ffdfae; }
+
+/* ===== Balta: tamsesni šonai, balta turinio kolona, kiekviena dalis turi savo šešėlį ===== */
+:root {
+  --bg: #fff; --ink: #1f2430; --muted: #6b7280; --line: #e6e8ee;
+  --glass: #fff; --glass-edge: #eceef3;
+  --shadow: 0 8px 24px rgba(20, 25, 40, .10), 0 2px 6px rgba(20, 25, 40, .06);
+  --shadow-sm: 0 4px 14px rgba(20, 25, 40, .08), 0 1px 3px rgba(20, 25, 40, .06);
+  --shadow-hover: 0 12px 28px rgba(20, 25, 40, .14), 0 3px 8px rgba(20, 25, 40, .08);
+}
+html { background: #dfe2e8; }
+body { background: transparent; }
+body::before, body::after { display: none; }
+.page {
+  max-width: 1040px; margin: 0 auto; min-height: 100vh; background: #fff;
+  box-shadow: 0 0 0 1px rgba(20, 25, 40, .05), 0 0 60px rgba(20, 25, 40, .20);
+}
+@media (max-width: 719px) { .page { box-shadow: none; } }
+
+.card, .offer, .day, .chip, .mode, .swap {
+  background: #fff; border-color: #eceef3; -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.card { box-shadow: var(--shadow); border-radius: 22px; }
+.offer { box-shadow: var(--shadow-sm); }
+.offer:hover { box-shadow: var(--shadow-hover); }
+.day { box-shadow: var(--shadow-sm); }
+.day:hover { box-shadow: var(--shadow-hover); }
+.mode, .chip { box-shadow: 0 2px 6px rgba(20, 25, 40, .08); }
+.mode.active { box-shadow: var(--shadow-sm); }
+.swap { box-shadow: 0 2px 8px rgba(20, 25, 40, .12); }
+.chip.active, .day.sel { background: linear-gradient(180deg, var(--brand-light), var(--brand)); }
+.day.none { background: #fff; }
+input[type=text], input:not([type]), input[type=date], input[type=number], select {
+  background: #fff; border-color: #e3e5ea; box-shadow: 0 1px 3px rgba(20, 25, 40, .06);
+}
+.times .line span { background: #fff; }
+.grouphead span { background: #fff4ea; }
+code { background: #f1f2f5; }
