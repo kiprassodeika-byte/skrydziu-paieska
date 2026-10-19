@@ -6,6 +6,7 @@ let exState = null;
 let demo = true;
 let nearby = false;
 let liveUrl = "";
+let searchedDate = "";
 
 const label = (a) => `${a.city} (${a.code})`;
 const fmtTime = (iso) => new Date(iso).toLocaleTimeString("lt-LT", { hour: "2-digit", minute: "2-digit" });
@@ -95,6 +96,7 @@ $("search").addEventListener("submit", async (e) => {
   offers = result.offers;
   demo = result.demo;
   nearby = !!result.nearby;
+  searchedDate = $("date").value;
   liveUrl = result.liveUrl || "";
   offers.forEach((o) => (o.from = from.code, o.to = to.code));
   $("demoNote").hidden = !demo;
@@ -139,7 +141,7 @@ function render() {
         : `Pasirinktai dienai kainų nerasta, rodome artimiausias datas (${list.length}).`;
   const cheapest = Math.min(...list.map((o) => o.price));
 
-  $("results").innerHTML = list.map((o) => `
+  const card = (o) => `
     <article class="offer">
       <div>
         <div class="airline">${esc(o.airline)}${o.source === "google" ? '<span class="tag">Gyva kaina</span>' : o.exact ? '<span class="tag">Jūsų data</span>' : ""}${o.price === cheapest ? '<span class="tag">Pigiausias</span>' : ""}</div>
@@ -156,7 +158,19 @@ function render() {
         <div class="pl">${o.returnIso ? "kaina į abi puses" : "į vieną pusę"}</div>
         <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? `Pirkti pas ${esc(o.airline)} ↗` : o.source === "google" ? "Atidaryti Google Flights ↗" : "Tikrinti kainą ir pirkti ↗"}</a>
       </div>
-    </article>`).join("");
+    </article>`;
+
+  // Pirmiausia jūsų pasirinkta data, po jos – kitos siūlomos datos
+  const head = (title, n) => `<h3 class="grouphead">${esc(title)}<span>${n}</span></h3>`;
+  if (demo) {
+    $("results").innerHTML = list.map(card).join("");
+    return;
+  }
+  const exact = list.filter((o) => o.exact);
+  const others = list.filter((o) => !o.exact);
+  $("results").innerHTML =
+    (exact.length ? head(`Jūsų data · ${searchedDate}`, exact.length) + exact.map(card).join("") : "") +
+    (others.length ? head(exact.length ? "Kitos siūlomos datos" : "Šiai dienai nerasta · siūlomos artimiausios datos", others.length) + others.map(card).join("") : "");
 }
 
 // ---- Režimai: paieška / „Kur nuskristi?“ ----
