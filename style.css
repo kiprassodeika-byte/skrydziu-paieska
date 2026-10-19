@@ -213,3 +213,52 @@ input[type=text], input:not([type]), input[type=date], input[type=number], selec
 .times .line span { background: #fff; }
 .grouphead span { background: #f0f4ff; }
 code { background: #f1f2f5; }
+
+/* ===== Fono nuotrauka + kiekvienas užrašas savo matinio stiklo kvadrate ===== */
+:root {
+  --photo: url("https://images.unsplash.com/photo-1631742272329-eeca83cb6886?q=80&w=2070&auto=format&fit=crop");
+  --gl: rgba(255, 255, 255, .60); --gl-strong: rgba(255, 255, 255, .72); --gl-edge: rgba(255, 255, 255, .75);
+  --gl-shadow: 0 8px 28px rgba(10, 20, 50, .28), inset 0 1px 0 rgba(255, 255, 255, .8);
+  --gl-blur: blur(18px) saturate(1.5);
+}
+html { background: #2b3b5e; }
+body::before {
+  display: block; content: ""; position: fixed; inset: 0; z-index: -2; border-radius: 0; width: auto; height: auto; top: 0; right: 0; left: 0; bottom: 0;
+  background: var(--photo) center / cover no-repeat;
+}
+body::after {
+  display: block; content: ""; position: fixed; inset: 0; z-index: -1; border-radius: 0; width: auto; height: auto; top: 0; right: 0; left: 0; bottom: 0;
+  background: linear-gradient(180deg, rgba(15, 25, 55, 0), rgba(15, 25, 55, .12));
+}
+.page { background: transparent; box-shadow: none; max-width: 1000px; }
+
+/* Stiklo kvadratas: skaidrus, išblukintas, su šviesiu kraštu ir savo šešėliu */
+.card, .offer, .day, .chip, .mode, .swap, .check, .status:not(:empty), .live, .demo-note, .caltitle, .grouphead,
+.hero h1, .hero .sub, .credit {
+  background: var(--gl); border: 1px solid var(--gl-edge); box-shadow: var(--gl-shadow);
+  -webkit-backdrop-filter: var(--gl-blur); backdrop-filter: var(--gl-blur);
+}
+.card, .offer { background: var(--gl-strong); }
+.hero h1, .hero .sub, .status, .live, .demo-note, .caltitle, .grouphead, .credit {
+  display: table; margin-left: auto; margin-right: auto; border-radius: 16px; text-align: center;
+}
+.hero h1 { padding: 8px 30px; margin-bottom: 12px; }
+.hero .sub { padding: 6px 18px; margin: 0 auto 20px; }
+.status:empty { display: none; }
+.status { padding: 8px 18px; margin: 16px auto 12px; color: var(--ink); }
+.live, .demo-note { padding: 7px 18px; margin: 8px auto; max-width: 860px; color: var(--ink); }
+.caltitle { padding: 5px 16px; margin: 0 auto 10px; color: var(--ink); }
+.grouphead { padding: 6px 18px; margin: 22px auto 12px; gap: 10px; }
+.grouphead::before, .grouphead::after { display: none; }
+.check { padding: 6px 14px; border-radius: 999px; color: var(--ink); }
+.mode, .chip { color: var(--ink); }
+.mode.active { background: #fff; color: var(--brand-ink); }
+.chip.active, .day.sel { color: #fff; border-color: transparent; background: linear-gradient(180deg, var(--brand-light), var(--brand)); }
+.day { background: var(--gl); }
+.day.none { opacity: .85; background: rgba(255, 255, 255, .45); }
+.times .line span { background: rgba(255, 255, 255, .85); border-radius: 8px; }
+input[type=text], input:not([type]), input[type=date], input[type=number], select { background: rgba(255, 255, 255, .88); }
+.credit { margin: 28px auto 20px; padding: 5px 14px; font-size: 12px; color: var(--muted); }
+.credit a { color: var(--brand-ink); }
+.toolbar { margin-top: 8px; }
+@media (max-width: 560px) { .hero h1 { padding: 8px 20px; } }
