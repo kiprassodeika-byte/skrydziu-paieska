@@ -159,3 +159,14 @@ input[type=text], input:not([type]), input[type=date], input[type=number], selec
 }
 .day.sel small, .day.sel span { color: #fff; }
 .cal { scrollbar-width: thin; scrollbar-color: #c9d6f0 transparent; }
+
+/* Viskas per vidurį: antraštė, režimai, forma, kalendorius ir rezultatai */
+.hero { text-align: center; }
+.modes, .trip { justify-content: center; }
+.card, .calbox, .toolbar, #results, .live, .demo-note { max-width: 860px; margin-left: auto; margin-right: auto; }
+.card { text-align: left; }
+.cal { justify-content: safe center; }
+.toolbar { justify-content: center; gap: 8px 24px; }
+.chips { justify-content: center; }
+.caltitle { text-align: center; }
+.offer { text-align: left; }
