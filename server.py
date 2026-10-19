@@ -208,14 +208,16 @@ def search(params):
                     found.append(offer)
         return found
 
-    # Mėnesiai: pasirinktos dienos mėnuo (+ gretimas, jei diena arti ribos; tik į vieną pusę)
-    year, month_no, day = int(date[:4]), int(date[5:7]), int(date[8:10])
+    # Mėnesiai: kalendoriaus langas (-3..+17 dienų nuo pasirinktos datos) gali apimti kelis mėnesius
+    # (tik į vieną pusę; į abi puses imamas vienas mėnuo, nes grįžimo mėnuo priklauso nuo trukmės)
     months = [date[:7]]
     if not return_date:
-        if day >= 20:
-            months.append(f"{year + (month_no == 12):04d}-{1 if month_no == 12 else month_no + 1:02d}")
-        elif day <= 10 and (year, month_no) > (datetime.now().year, datetime.now().month):
-            months.append(f"{year - (month_no == 1):04d}-{12 if month_no == 1 else month_no - 1:02d}")
+        picked = datetime.strptime(date, "%Y-%m-%d")
+        now_month = datetime.now().strftime("%Y-%m")
+        for offset in (-3, 17):
+            ym = (picked + timedelta(days=offset)).strftime("%Y-%m")
+            if ym >= now_month and ym not in months:
+                months.append(ym)
 
     # v3 prices_for_dates yra retas (dažnai tuščias), todėl papildome senesniais endpoint'ais,
     # kurie turi daug daugiau dienų: prices/cheap, prices/direct (tiksli diena) ir prices/calendar (mėnuo).
@@ -267,6 +269,7 @@ def search(params):
     tasks = [("v3", date, return_date, True), ("v3", date[:7], return_date[:7] if return_date else "", False),
              ("cheap", date, "", False), ("direct", date, "", False)]
     tasks += [("calendar", m, "", False) for m in months]
+    tasks += [("v3", m, "", False) for m in months[1:]]
     try:
         with ThreadPoolExecutor(max_workers=6) as pool:
             results = list(pool.map(run, tasks))

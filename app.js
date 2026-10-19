@@ -80,6 +80,7 @@ $("search").addEventListener("submit", async (e) => {
   $("results").innerHTML = "";
   $("toolbar").hidden = true;
   $("liveLink").hidden = true;
+  $("calendarBox").hidden = true;
   $("status").textContent = `Ieškoma skrydžių ${from.city} → ${to.city}…`;
   const isReturn = document.querySelector("input[name=trip]:checked").value === "return";
   let result;
@@ -102,6 +103,7 @@ $("search").addEventListener("submit", async (e) => {
     "Rodomi <strong>demo duomenys</strong>, ne tikros kainos. Įrašykite Travelpayouts raktus į <code>.env</code> (žr. README).";
   render();
   showLive(from, to);
+  renderCalendar($("date").value);
 });
 
 function showLive(from, to) {
@@ -166,6 +168,7 @@ function setMode(explore) {
   $("toolbar").hidden = true;
   $("exToolbar").hidden = true;
   $("liveLink").hidden = true;
+  $("calendarBox").hidden = true;
   exState = null;
   $("results").innerHTML = "";
   $("status").textContent = "";
@@ -233,3 +236,49 @@ function renderExplore() {
       </div>
     </article>`).join("");
 }
+
+// ---- Kainų kalendorius: pigiausia kaina kiekvienai dienai aplink pasirinktą datą ----
+const WEEKDAYS = ["Sk", "Pr", "An", "Tr", "Kt", "Pn", "Št"];
+const addDays = (isoDay, n) => iso(new Date(new Date(`${isoDay}T12:00:00Z`).getTime() + n * 864e5));
+
+function renderCalendar(selected) {
+  const box = $("calendarBox");
+  box.hidden = demo || offers.length === 0;
+  if (box.hidden) return;
+  const cheapestByDay = new Map();
+  for (const o of offers) {
+    const day = o.departIso.slice(0, 10);
+    if (!cheapestByDay.has(day) || o.price < cheapestByDay.get(day)) cheapestByDay.set(day, o.price);
+  }
+  const todayIso = iso(new Date());
+  let start = addDays(selected, -3);
+  if (start < todayIso) start = todayIso;
+  const days = Array.from({ length: 21 }, (_, i) => addDays(start, i));
+  const prices = days.map((d) => cheapestByDay.get(d)).filter((p) => p != null);
+  const min = prices.length ? Math.min(...prices) : null;
+  $("calTitle").textContent = `Kainos pagal dieną · ${days[0].slice(0, 7)} – ${days[days.length - 1].slice(0, 7)}${min != null ? ` · pigiausia ${min} €` : ""}`;
+  $("calendar").innerHTML = days.map((d) => {
+    const p = cheapestByDay.get(d);
+    const wd = WEEKDAYS[new Date(`${d}T12:00:00Z`).getUTCDay()];
+    const cls = ["day", d === selected ? "sel" : "", p == null ? "none" : "", p != null && p === min ? "cheap" : ""].join(" ").trim();
+    return `<button type="button" class="${cls}" data-day="${d}" role="option" aria-selected="${d === selected}" title="${d}">` +
+      `<small>${wd} ${d.slice(5, 7)}</small><b>${d.slice(8, 10)}</b><span>${p != null ? `${p} €` : "—"}</span></button>`;
+  }).join("");
+  const sel = $("calendar").querySelector(".sel");
+  if (sel) sel.scrollIntoView({ inline: "center", block: "nearest" });
+}
+
+$("calendar").addEventListener("click", (e) => {
+  const btn = e.target.closest(".day");
+  if (!btn) return;
+  const oldDate = $("date").value;
+  const newDay = btn.dataset.day;
+  if (newDay === oldDate) return;
+  $("date").value = newDay;
+  // „Į abi puses“: paliekame tą pačią kelionės trukmę
+  if (document.querySelector("input[name=trip]:checked").value === "return" && $("returnDate").value) {
+    const stay = Math.round((new Date($("returnDate").value) - new Date(oldDate)) / 864e5);
+    $("returnDate").value = addDays(newDay, Math.max(stay, 1));
+  }
+  $("search").requestSubmit();
+});
