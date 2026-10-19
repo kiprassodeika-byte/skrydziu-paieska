@@ -149,7 +149,7 @@ function render() {
           ${o.departLocal || o.timeUnknown ? "" : `<span class="t">${fmtTime(o.arriveIso)}</span>`}
         </div>
         <div class="meta">${o.from} → ${o.to} · ${o.stops === 0 ? "Tiesioginis" : `${o.stops} persėdimas`}${
-          o.returnIso ? ` · Grįžimas ${fmtDate(o.returnIso)}` : ""}${demo ? "" : ` · ${fmtDate(o.departIso)}`}</div>
+          o.returnIso ? ` · Išvykimas ${fmtDate(o.departIso)} · Grįžimas ${fmtDate(o.returnIso)}` : demo ? "" : ` · ${fmtDate(o.departIso)}`}</div>
       </div>
       <div class="buy">
         <div class="price">${o.price} ${o.currency === "EUR" || !o.currency ? "€" : o.currency}</div>
