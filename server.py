@@ -18,7 +18,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-PUBLIC_FILES = {"index.html", "app.js", "data.js", "provider.js", "i18n.js", "style.css"}
+PUBLIC_FILES = {"index.html", "app.js", "data.js", "provider.js", "i18n.js", "legal.js", "privacy.html", "terms.html", "style.css"}
+ROUTES = {"/": "index.html", "/privacy": "privacy.html", "/terms": "terms.html"}
 CONTENT_TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8"}
 AVIASALES = "https://www.aviasales.com"
 
@@ -493,7 +494,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
             status, body = explore(urllib.parse.parse_qs(parsed.query))
             return self.send(status, body)
-        name = "index.html" if parsed.path == "/" else parsed.path.lstrip("/")
+        name = ROUTES.get(parsed.path, parsed.path.lstrip("/"))
         if name not in PUBLIC_FILES:
             return self.send(404, {"error": "Nerasta"})
         self.send(200, (ROOT / name).read_bytes(), CONTENT_TYPES[Path(name).suffix])
