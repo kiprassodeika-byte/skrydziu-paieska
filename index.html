@@ -10,45 +10,49 @@
   <div class="page">
   <header class="hero">
     <div class="wrap">
-      <h1>Raskite skrydį</h1>
-      <p class="sub">Palyginkite kainas ir nusipirkite tiesiai pas pardavėją.</p>
+      <div class="langs" role="group" aria-label="Language">
+        <button type="button" class="lang" data-lang="lt" id="langLt">LT</button>
+        <button type="button" class="lang" data-lang="en" id="langEn">EN</button>
+      </div>
+      <h1 data-i18n="h1">Raskite skrydį</h1>
+      <p class="sub" data-i18n="sub">Palyginkite kainas ir nusipirkite tiesiai pas pardavėją.</p>
       <div class="modes" role="tablist">
-        <button type="button" class="mode active" id="modeSearch" role="tab">Ieškoti skrydžio</button>
-        <button type="button" class="mode" id="modeExplore" role="tab">Kur nuskristi?</button>
+        <button type="button" class="mode active" id="modeSearch" role="tab" data-i18n="modeSearch">Ieškoti skrydžio</button>
+        <button type="button" class="mode" id="modeExplore" role="tab" data-i18n="modeExplore">Kur nuskristi?</button>
       </div>
 
       <form id="search" class="card" autocomplete="off">
         <div class="trip">
-          <label><input type="radio" name="trip" value="oneway" checked> Į vieną pusę</label>
-          <label><input type="radio" name="trip" value="return"> Į abi puses</label>
+          <label><input type="radio" name="trip" value="oneway" checked> <span data-i18n="oneway">Į vieną pusę</span></label>
+          <label><input type="radio" name="trip" value="return"> <span data-i18n="roundtrip">Į abi puses</span></label>
         </div>
         <div class="sgrid">
           <div class="srow1">
             <div class="field">
-              <label for="from">Iš</label>
-              <button type="button" id="locate" class="link" title="Nustatyti mano vietą">📍 Mano vieta</button>
-              <input id="from" list="airports" placeholder="Miestas arba kodas" required>
+              <label for="from" data-i18n="from">Iš</label>
+              <button type="button" id="locate" class="link" data-i18n="locate" data-i18n-title="locateTitle" title="Nustatyti mano vietą">📍 Mano vieta</button>
+              <input id="from" list="airports" data-i18n-placeholder="placeholder" placeholder="Miestas arba kodas" required>
             </div>
-            <button type="button" id="swap" class="swap" aria-label="Sukeisti vietomis">⇄</button>
+            <button type="button" id="swap" class="swap" data-i18n-aria="swap" aria-label="Sukeisti vietomis">⇄</button>
             <div class="field">
-              <label for="to">Į</label>
-              <input id="to" list="airports" placeholder="Miestas arba kodas" required>
+              <label for="to" data-i18n="to">Į</label>
+              <input id="to" list="airports" data-i18n-placeholder="placeholder" placeholder="Miestas arba kodas" required>
             </div>
           </div>
           <div class="srow2">
             <div class="field">
-              <label for="date">Išvykimas</label>
+              <label for="date" data-i18n="depart">Išvykimas</label>
               <input id="date" type="date" required>
             </div>
             <div class="field" id="returnField" hidden>
-              <label for="returnDate">Grįžimas</label>
+              <label for="returnDate" data-i18n="ret">Grįžimas</label>
               <input id="returnDate" type="date">
             </div>
             <div class="field narrow">
-              <label for="adults">Keleiviai</label>
+              <label for="adults" data-i18n="pax">Keleiviai</label>
               <input id="adults" type="number" min="1" max="9" value="1">
             </div>
-            <button class="primary" type="submit">Ieškoti</button>
+            <button class="primary" type="submit" data-i18n="search">Ieškoti</button>
           </div>
         </div>
         <datalist id="airports"></datalist>
@@ -57,20 +61,20 @@
       <form id="explore" class="card" autocomplete="off" hidden>
         <div class="grid explore">
           <div class="field">
-            <label for="exFrom">Iš</label>
-            <button type="button" id="exLocate" class="link">📍 Mano vieta</button>
-            <input id="exFrom" list="airports" placeholder="Miestas arba kodas" required>
+            <label for="exFrom" data-i18n="from">Iš</label>
+            <button type="button" id="exLocate" class="link" data-i18n="locate">📍 Mano vieta</button>
+            <input id="exFrom" list="airports" data-i18n-placeholder="placeholder" placeholder="Miestas arba kodas" required>
           </div>
           <div class="field">
-            <label for="exBudget">Biudžetas (€)</label>
+            <label for="exBudget" data-i18n="budget">Biudžetas (€)</label>
             <input id="exBudget" type="number" min="10" max="5000" step="10" value="100">
           </div>
           <div class="field">
-            <label for="exMonth">Kada</label>
+            <label for="exMonth" data-i18n="when">Kada</label>
             <select id="exMonth"></select>
           </div>
-          <label class="check exdirect"><input type="checkbox" id="exDirect"> Tik tiesioginiai</label>
-          <button class="primary" type="submit">Rodyti kryptis</button>
+          <label class="check exdirect"><input type="checkbox" id="exDirect"> <span data-i18n="directOnly">Tik tiesioginiai</span></label>
+          <button class="primary" type="submit" data-i18n="showDest">Rodyti kryptis</button>
         </div>
       </form>
     </div>
@@ -80,36 +84,35 @@
     <div id="status" class="status" role="status"></div>
     <section id="calendarBox" class="calbox" hidden>
       <div class="caltitle" id="calTitle"></div>
-      <div id="calendar" class="cal" role="listbox" aria-label="Kainos pagal dieną"></div>
+      <div id="calendar" class="cal" role="listbox" data-i18n-aria="calAria" aria-label="Kainos pagal dieną"></div>
     </section>
     <div id="toolbar" class="toolbar" hidden>
       <div class="chips" id="sortChips">
-        <button class="chip active" data-sort="depart">Pagal datą</button>
-        <button class="chip" data-sort="price">Pigiausi</button>
-        <button class="chip" data-sort="duration">Greičiausi</button>
+        <button class="chip active" data-sort="depart" data-i18n="byDate">Pagal datą</button>
+        <button class="chip" data-sort="price" data-i18n="cheapest">Pigiausi</button>
+        <button class="chip" data-sort="duration" data-i18n="fastest">Greičiausi</button>
       </div>
-      <label class="check"><input type="checkbox" id="directOnly"> Tik tiesioginiai</label>
+      <label class="check"><input type="checkbox" id="directOnly"> <span data-i18n="directOnly">Tik tiesioginiai</span></label>
     </div>
     <div id="exToolbar" class="toolbar" hidden>
       <div class="chips" id="exSortChips">
-        <button class="chip active" data-sort="depart">Pagal datą</button>
-        <button class="chip" data-sort="price">Pigiausios</button>
+        <button class="chip active" data-sort="depart" data-i18n="byDate">Pagal datą</button>
+        <button class="chip" data-sort="price" data-i18n="cheapestF">Pigiausios</button>
       </div>
     </div>
     <p class="live" id="liveLink" hidden></p>
-    <p class="demo-note" id="priceNote" hidden>
+    <p class="demo-note" id="priceNote" hidden data-i18n="priceNote">
       Kainos orientacinės: jos rastos neseniai, todėl galutinė kaina ir likę bilietai patikrinami pardavėjo puslapyje.
     </p>
     <div id="results"></div>
-    <p class="demo-note" id="demoNote" hidden>
-      Rodomi <strong>demo duomenys</strong>, ne tikros kainos. Prijunkite skrydžių API faile <code>provider.js</code>, kad matytumėte realias kainas.
-    </p>
+    <p class="demo-note" id="demoNote" hidden data-i18n-html="demo"></p>
   </main>
   <footer class="credit">
-    Foto: <a href="https://unsplash.com/photos/the-sun-is-setting-over-the-clouds-as-seen-from-an-airplane-GPY8Dn02OW8" target="_blank" rel="noopener noreferrer">Noorulabdeen Ahmad</a> / <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer">Unsplash</a>
+    <span data-i18n="credit">Foto:</span> <a href="https://unsplash.com/photos/the-sun-is-setting-over-the-clouds-as-seen-from-an-airplane-GPY8Dn02OW8" target="_blank" rel="noopener noreferrer">Noorulabdeen Ahmad</a> / <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer">Unsplash</a>
   </footer>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="data.js"></script>
   <script src="provider.js"></script>
   <script src="app.js"></script>

@@ -262,3 +262,11 @@ input[type=text], input:not([type]), input[type=date], input[type=number], selec
 .credit a { color: var(--brand-ink); }
 .toolbar { margin-top: 8px; }
 @media (max-width: 560px) { .hero h1 { padding: 8px 20px; } }
+
+/* Kalbos pasirinkimas */
+.langs { display: flex; justify-content: flex-end; gap: 6px; margin: 0 0 10px; }
+.lang { font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; padding: 5px 13px; border-radius: 999px;
+  background: var(--gl); border: 1px solid var(--gl-edge); box-shadow: var(--gl-shadow); -webkit-backdrop-filter: var(--gl-blur); backdrop-filter: var(--gl-blur); }
+.lang:hover { background: #fff; }
+.lang.active { background: #fff; color: var(--brand-ink); }
+.credit [data-i18n="credit"] { margin-right: 4px; }

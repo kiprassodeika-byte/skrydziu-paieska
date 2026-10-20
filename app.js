@@ -7,14 +7,20 @@ let demo = true;
 let nearby = false;
 let liveUrl = "";
 let searchedDate = "";
+let lastSearch = null;   // { from, to } – kad kalbos keitimas galėtų perpiešti nuorodą
+let lastNotice = "";     // paskutinis serverio pranešimas (verčiamas rodant)
+let shown = null;        // "search" | "explore" | null – kas dabar rodoma rezultatuose
 
-const label = (a) => `${a.city} (${a.code})`;
-const fmtTime = (iso) => new Date(iso).toLocaleTimeString("lt-LT", { hour: "2-digit", minute: "2-digit" });
+const label = (a) => `${airportCity(a)} (${a.code})`;
+const fmtTime = (iso) => new Date(iso).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
 // Data kaip YYYY-MM-DD, imama tiesiai iš ISO eilutės (oro uosto vietos data, ne naršyklės laiko juostos)
 const fmtDate = (iso) => iso.slice(0, 10);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const safeUrl = (u) => (/^https:\/\//.test(u) ? esc(u) : "#");
-const fmtDur =(m) => `${Math.floor(m / 60)} val. ${String(m % 60).padStart(2, "0")} min.`;
+const fmtDur = (m) => (LANG === "en"
+  ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`
+  : `${Math.floor(m / 60)} val. ${String(m % 60).padStart(2, "0")} min.`);
+const money = (o) => (o.currency === "EUR" || !o.currency ? "€" : o.currency);
 
 // Rikiavimas: pagal datą (ankstyviausia pirma), kainą arba trukmę; lygiais – pagal kainą
 const when = (o) => Date.parse(o.departIso);
@@ -23,13 +29,16 @@ function byKey(kind, duration) {
   return (a, b) => key(a) - key(b) || a.price - b.price || when(a) - when(b);
 }
 
-// Oro uostų pasiūlymai laukeliuose
-$("airports").innerHTML = AIRPORTS.map((a) => `<option value="${label(a)}">${a.country}</option>`).join("");
+// Oro uostų pasiūlymai laukeliuose (pagal pasirinktą kalbą)
+function fillAirports() {
+  $("airports").innerHTML = AIRPORTS.map((a) => `<option value="${esc(label(a))}">${esc(airportCountry(a))}</option>`).join("");
+}
 
 function findAirport(text) {
-  const t = text.trim().toLowerCase();
-  const code = t.match(/\(([a-z]{3})\)/)?.[1] ?? (t.length === 3 ? t : null);
-  return AIRPORTS.find((a) => a.code.toLowerCase() === code) ?? AIRPORTS.find((a) => a.city.toLowerCase().startsWith(t));
+  const t0 = text.trim().toLowerCase();
+  const code = t0.match(/\(([a-z]{3})\)/)?.[1] ?? (t0.length === 3 ? t0 : null);
+  const names = (a) => [a.city, EN_CITY[a.code]].filter(Boolean).map((n) => n.toLowerCase());
+  return AIRPORTS.find((a) => a.code.toLowerCase() === code) ?? AIRPORTS.find((a) => names(a).some((n) => n.startsWith(t0)));
 }
 
 // Datos
@@ -52,15 +61,15 @@ function nearestAirport(lat, lon) {
   return AIRPORTS.reduce((best, a) => (haversineKm({ lat, lon }, a) < haversineKm({ lat, lon }, best) ? a : best));
 }
 function locateInto(input) {
-  if (!navigator.geolocation) return ($("status").textContent = "Naršyklė nepalaiko vietos nustatymo.");
-  $("status").textContent = "Nustatoma jūsų vieta…";
+  if (!navigator.geolocation) return ($("status").textContent = t("locUnsupported"));
+  $("status").textContent = t("locating");
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const a = nearestAirport(pos.coords.latitude, pos.coords.longitude);
       input.value = label(a);
-      $("status").textContent = `Artimiausias oro uostas: ${a.city} (${a.code})`;
+      $("status").textContent = t("nearestAirport", { name: label(a) });
     },
-    () => ($("status").textContent = "Nepavyko nustatyti vietos. Įveskite išvykimo miestą ranka."),
+    () => ($("status").textContent = t("locFail")),
     { timeout: 8000 }
   );
 }
@@ -71,18 +80,24 @@ $("swap").addEventListener("click", () => {
   [$("from").value, $("to").value] = [$("to").value, $("from").value];
 });
 
+// Demo pranešimas (su serverio klaida, jei buvo)
+function setDemoNote() {
+  $("demoNote").innerHTML = (lastNotice ? `${esc(errText(lastNotice))} ` : "") + t("demo");
+}
+
 // Paieška
 $("search").addEventListener("submit", async (e) => {
   e.preventDefault();
   const from = findAirport($("from").value), to = findAirport($("to").value);
-  if (!from || !to) return ($("status").textContent = "Pasirinkite oro uostus iš pasiūlymų sąrašo.");
-  if (from.code === to.code) return ($("status").textContent = "Išvykimo ir atvykimo vietos negali sutapti.");
+  if (!from || !to) return ($("status").textContent = t("pickAirports"));
+  if (from.code === to.code) return ($("status").textContent = t("sameAirport"));
 
   $("results").innerHTML = "";
+  shown = null;
   $("toolbar").hidden = true;
   $("liveLink").hidden = true;
   $("calendarBox").hidden = true;
-  $("status").textContent = `Ieškoma skrydžių ${from.city} → ${to.city}…`;
+  $("status").textContent = t("searching", { from: airportCity(from), to: airportCity(to) });
   const isReturn = document.querySelector("input[name=trip]:checked").value === "return";
   let result;
   try {
@@ -91,30 +106,31 @@ $("search").addEventListener("submit", async (e) => {
       returnDate: isReturn ? $("returnDate").value : "",
     });
   } catch (err) {
-    return ($("status").textContent = "Nepavyko gauti skrydžių. Bandykite dar kartą.");
+    return ($("status").textContent = t("failFlights"));
   }
   offers = result.offers;
   demo = result.demo;
   nearby = !!result.nearby;
   searchedDate = $("date").value;
   liveUrl = result.liveUrl || "";
+  lastSearch = { from, to };
+  lastNotice = result.notice || "";
   offers.forEach((o) => (o.from = from.code, o.to = to.code));
   $("demoNote").hidden = !demo;
   $("priceNote").hidden = demo || offers.length === 0;
-  $("demoNote").innerHTML = (result.notice ? `${result.notice} ` : "") +
-    "Rodomi <strong>demo duomenys</strong>, ne tikros kainos. Įrašykite Travelpayouts raktus į <code>.env</code> (žr. README).";
+  setDemoNote();
   render();
-  showLive(from, to);
+  showLive();
   renderCalendar($("date").value);
 });
 
-function showLive(from, to) {
+function showLive() {
   const el = $("liveLink");
-  el.hidden = demo || !liveUrl;
+  el.hidden = demo || !liveUrl || !lastSearch;
   if (el.hidden) return;
-  const date = $("date").value;
-  el.innerHTML = `Neradote savo skrydžio? Talpykloje būna ne visi. <a href="${safeUrl(liveUrl)}" target="_blank" rel="noopener noreferrer">` +
-    `Peržiūrėti visus skrydžius ${esc(from.code)} → ${esc(to.code)} ${esc(date)} (gyva paieška) ↗</a>`;
+  const { from, to } = lastSearch;
+  el.innerHTML = `${t("liveText")} <a href="${safeUrl(liveUrl)}" target="_blank" rel="noopener noreferrer">` +
+    `${esc(t("liveLink", { from: from.code, to: to.code, date: searchedDate }))}</a>`;
 }
 
 document.querySelectorAll("#sortChips .chip").forEach((c) =>
@@ -127,36 +143,37 @@ document.querySelectorAll("#sortChips .chip").forEach((c) =>
 $("directOnly").addEventListener("change", render);
 
 function render() {
+  shown = "search";
   let list = offers.filter((o) => !$("directOnly").checked || o.stops === 0);
   list = [...list].sort(byKey(sort, (o) => o.durationMin));
 
   $("toolbar").hidden = offers.length === 0;
   const exactN = list.filter((o) => o.exact).length;
   $("status").textContent = !list.length
-    ? "Pagal šiuos kriterijus skrydžių nerasta. Pabandykite kitą datą arba artimiausią didesnį miestą."
+    ? t("noResults")
     : demo
-      ? `Rasta skrydžių: ${list.length}`
+      ? t("foundN", { n: list.length })
       : exactN
-        ? `Jūsų dienai: ${exactN} · kitomis artimomis dienomis: ${list.length - exactN}`
-        : `Pasirinktai dienai kainų nerasta, rodome artimiausias datas (${list.length}).`;
+        ? t("yourDay", { a: exactN, b: list.length - exactN })
+        : t("noneForDay", { n: list.length });
   const cheapest = Math.min(...list.map((o) => o.price));
 
   const card = (o) => `
     <article class="offer">
       <div>
-        <div class="airline">${esc(o.airline)}${o.source === "google" ? '<span class="tag">Gyva kaina</span>' : o.exact ? '<span class="tag">Jūsų data</span>' : ""}${o.price === cheapest ? '<span class="tag">Pigiausias</span>' : ""}</div>
+        <div class="airline">${esc(o.airline)}${o.source === "google" ? `<span class="tag">${t("tagLive")}</span>` : o.exact ? `<span class="tag">${t("tagYourDate")}</span>` : ""}${o.price === cheapest ? `<span class="tag">${t("tagCheapest")}</span>` : ""}</div>
         <div class="times">
           <span class="t">${o.timeUnknown ? fmtDate(o.departIso) : (o.departLocal ?? fmtTime(o.departIso))}</span>
-          <span class="line"><span>${o.durationMin ? fmtDur(o.durationMin) : "laikas tikslinamas pardavėjo puslapyje"}</span></span>
+          <span class="line"><span>${o.durationMin ? fmtDur(o.durationMin) : t("timeUnknown")}</span></span>
           ${o.departLocal || o.timeUnknown ? "" : `<span class="t">${fmtTime(o.arriveIso)}</span>`}
         </div>
-        <div class="meta">${o.from} → ${o.to} · ${o.stops === 0 ? "Tiesioginis" : `${o.stops} persėdimas`}${
-          o.returnIso ? ` · Išvykimas ${fmtDate(o.departIso)} · Grįžimas ${fmtDate(o.returnIso)}` : demo ? "" : ` · ${fmtDate(o.departIso)}`}</div>
+        <div class="meta">${o.from} → ${o.to} · ${stopsText(o.stops)}${
+          o.returnIso ? ` · ${t("metaDepart", { d: fmtDate(o.departIso) })} · ${t("metaReturn", { d: fmtDate(o.returnIso) })}` : demo ? "" : ` · ${fmtDate(o.departIso)}`}</div>
       </div>
       <div class="buy">
-        <div class="price">${o.price} ${o.currency === "EUR" || !o.currency ? "€" : o.currency}</div>
-        <div class="pl">${o.returnIso ? "kaina į abi puses" : "į vieną pusę"}</div>
-        <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? `Pirkti pas ${esc(o.airline)} ↗` : o.source === "google" ? "Atidaryti Google Flights ↗" : "Tikrinti kainą ir pirkti ↗"}</a>
+        <div class="price">${o.price} ${money(o)}</div>
+        <div class="pl">${o.returnIso ? t("priceRound") : t("priceOne")}</div>
+        <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? t("buyAirline", { a: esc(o.airline) }) : o.source === "google" ? t("openGoogle") : t("checkBuy")}</a>
       </div>
     </article>`;
 
@@ -169,8 +186,8 @@ function render() {
   const exact = list.filter((o) => o.exact);
   const others = list.filter((o) => !o.exact);
   $("results").innerHTML =
-    (exact.length ? head(`Jūsų data · ${searchedDate}`, exact.length) + exact.map(card).join("") : "") +
-    (others.length ? head(exact.length ? "Kitos siūlomos datos" : "Šiai dienai nerasta · siūlomos artimiausios datos", others.length) + others.map(card).join("") : "");
+    (exact.length ? head(t("groupYourDate", { d: searchedDate }), exact.length) + exact.map(card).join("") : "") +
+    (others.length ? head(exact.length ? t("groupOthers") : t("groupNone"), others.length) + others.map(card).join("") : "");
 }
 
 // ---- Režimai: paieška / „Kur nuskristi?“ ----
@@ -184,6 +201,7 @@ function setMode(explore) {
   $("liveLink").hidden = true;
   $("calendarBox").hidden = true;
   exState = null;
+  shown = null;
   $("results").innerHTML = "";
   $("status").textContent = "";
   $("demoNote").hidden = true;
@@ -192,31 +210,36 @@ function setMode(explore) {
 $("modeSearch").addEventListener("click", () => setMode(false));
 $("modeExplore").addEventListener("click", () => setMode(true));
 
-// Mėnesių sąrašas: „Bet kada“ + kiti 12 mėnesių
-$("exMonth").innerHTML = '<option value="">Bet kada</option>' + Array.from({ length: 12 }, (_, i) => {
-  const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
-  const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  return `<option value="${value}">${d.toLocaleDateString("lt-LT", { year: "numeric", month: "long" })}</option>`;
-}).join("");
+// Mėnesių sąrašas: „Bet kada“ + kiti 12 mėnesių (pagal pasirinktą kalbą)
+function fillMonths() {
+  const keep = $("exMonth").value;
+  $("exMonth").innerHTML = `<option value="">${esc(t("anytime"))}</option>` + Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return `<option value="${value}">${d.toLocaleDateString(locale(), { year: "numeric", month: "long" })}</option>`;
+  }).join("");
+  $("exMonth").value = keep;
+}
 
 $("explore").addEventListener("submit", async (e) => {
   e.preventDefault();
   const from = findAirport($("exFrom").value);
-  if (!from) return ($("status").textContent = "Pasirinkite išvykimo oro uostą iš pasiūlymų sąrašo.");
+  if (!from) return ($("status").textContent = t("pickFrom"));
   const budget = Math.max(0, +$("exBudget").value || 0);
   $("results").innerHTML = "";
+  shown = null;
   $("exToolbar").hidden = true;
-  $("status").textContent = `Ieškoma krypčių iš ${from.city}…`;
+  $("status").textContent = t("searchingDest", { from: airportCity(from) });
   let result;
   try {
     result = await exploreFlights({ from: from.code, month: $("exMonth").value, budget, direct: $("exDirect").checked });
   } catch (err) {
-    return ($("status").textContent = "Nepavyko gauti krypčių. Bandykite dar kartą.");
+    return ($("status").textContent = t("failDest"));
   }
   demo = result.demo;
+  lastNotice = result.notice || "";
   $("demoNote").hidden = !demo;
-  $("demoNote").innerHTML = (result.notice ? `${result.notice} ` : "") +
-    "Rodomi <strong>demo duomenys</strong>, ne tikros kainos. Įrašykite Travelpayouts raktus į <code>.env</code> (žr. README).";
+  setDemoNote();
   $("priceNote").hidden = demo || result.destinations.length === 0;
   exState = { list: result.destinations, from, budget };
   renderExplore();
@@ -231,28 +254,29 @@ document.querySelectorAll("#exSortChips .chip").forEach((c) =>
 );
 
 function renderExplore() {
+  shown = "explore";
   const { from, budget } = exState;
   const list = [...exState.list].sort(byKey(exSort));
   const cheapest = Math.min(...list.map((o) => o.price));
   $("exToolbar").hidden = list.length === 0;
   $("status").textContent = list.length
-    ? `Kryptys iš ${from.city}${budget ? ` iki ${budget} €` : ""}: ${list.length}`
-    : "Pagal šiuos kriterijus krypčių nerasta. Padidinkite biudžetą, pasirinkite „Bet kada“ arba kitą oro uostą.";
+    ? t("destStatus", { from: airportCity(from), budget: budget ? t("destBudget", { b: budget }) : "", n: list.length })
+    : t("noDest");
   $("results").innerHTML = list.map((o) => `
     <article class="offer dest">
       <div>
-        <div class="name">${esc(destName(o.dest))}${o.price === cheapest ? '<span class="tag">Pigiausia</span>' : ""}</div>
-        <div class="meta">${from.code} → ${esc(o.dest)} · ${fmtDate(o.departIso)} · ${o.stops === 0 ? "Tiesioginis" : `${o.stops} persėdimas`} · ${esc(o.airline)}</div>
+        <div class="name">${esc(destName(o.dest))}${o.price === cheapest ? `<span class="tag">${t("tagCheapestF")}</span>` : ""}</div>
+        <div class="meta">${from.code} → ${esc(o.dest)} · ${fmtDate(o.departIso)} · ${stopsText(o.stops)} · ${esc(o.airline)}</div>
       </div>
       <div class="buy">
-        <div class="price">nuo ${o.price} ${o.currency === "EUR" || !o.currency ? "€" : o.currency}</div>
-        <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? `Pirkti pas ${esc(o.airline)} ↗` : "Tikrinti kainą ir pirkti ↗"}</a>
+        <div class="price">${t("priceFrom", { p: `${o.price} ${money(o)}` })}</div>
+        <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? t("buyAirline", { a: esc(o.airline) }) : t("checkBuy")}</a>
       </div>
     </article>`).join("");
 }
 
 // ---- Kainų kalendorius: pigiausia kaina kiekvienai dienai aplink pasirinktą datą ----
-const WEEKDAYS = ["Sk", "Pr", "An", "Tr", "Kt", "Pn", "Št"];
+const WEEKDAYS = { lt: ["Sk", "Pr", "An", "Tr", "Kt", "Pn", "Št"], en: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] };
 const addDays = (isoDay, n) => iso(new Date(new Date(`${isoDay}T12:00:00Z`).getTime() + n * 864e5));
 
 function renderCalendar(selected) {
@@ -270,10 +294,11 @@ function renderCalendar(selected) {
   const days = Array.from({ length: 21 }, (_, i) => addDays(start, i));
   const prices = days.map((d) => cheapestByDay.get(d)).filter((p) => p != null);
   const min = prices.length ? Math.min(...prices) : null;
-  $("calTitle").textContent = `Kainos pagal dieną · ${days[0].slice(0, 7)} – ${days[days.length - 1].slice(0, 7)}${min != null ? ` · pigiausia ${min} €` : ""}`;
+  $("calTitle").textContent = t("calTitle", { a: days[0].slice(0, 7), b: days[days.length - 1].slice(0, 7) }) +
+    (min != null ? t("calMin", { m: min }) : "");
   $("calendar").innerHTML = days.map((d) => {
     const p = cheapestByDay.get(d);
-    const wd = WEEKDAYS[new Date(`${d}T12:00:00Z`).getUTCDay()];
+    const wd = WEEKDAYS[LANG][new Date(`${d}T12:00:00Z`).getUTCDay()];
     const cls = ["day", d === selected ? "sel" : "", p == null ? "none" : "", p != null && p === min ? "cheap" : ""].join(" ").trim();
     return `<button type="button" class="${cls}" data-day="${d}" role="option" aria-selected="${d === selected}" title="${d}">` +
       `<small>${wd} ${d.slice(5, 7)}</small><b>${d.slice(8, 10)}</b><span>${p != null ? `${p} €` : "—"}</span></button>`;
@@ -296,3 +321,26 @@ $("calendar").addEventListener("click", (e) => {
   }
   $("search").requestSubmit();
 });
+
+// ---- Kalbos keitimas ----
+function setLang(code) {
+  window.LANG = code;
+  try { localStorage.setItem("lang", code); } catch (e) { /* privatus režimas */ }
+  applyStatic();
+  fillAirports();
+  fillMonths();
+  if (!$("demoNote").hidden) setDemoNote();
+  if (shown === "search") {
+    render();
+    showLive();
+    if (!$("calendarBox").hidden) renderCalendar($("date").value);
+  } else if (shown === "explore" && exState) {
+    renderExplore();
+  }
+}
+document.querySelectorAll(".lang").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.lang)));
+
+// Pradinis užpildymas pagal išsaugotą / naršyklės kalbą
+applyStatic();
+fillAirports();
+fillMonths();

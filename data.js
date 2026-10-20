@@ -87,3 +87,49 @@ window.destName = (code) => {
   const a = AIRPORTS.find((x) => x.code === code);
   return a ? a.city : (CITY_NAMES[code] || code);
 };
+
+// ---- Anglų kalbos pavadinimai (kai LANG === "en") ----
+window.EN_COUNTRY = {
+  "Lietuva": "Lithuania", "Latvija": "Latvia", "Estija": "Estonia", "Lenkija": "Poland", "Vokietija": "Germany",
+  "Didžioji Britanija": "United Kingdom", "Airija": "Ireland", "Prancūzija": "France", "Nyderlandai": "Netherlands",
+  "Belgija": "Belgium", "Šveicarija": "Switzerland", "Austrija": "Austria", "Čekija": "Czechia", "Vengrija": "Hungary",
+  "Danija": "Denmark", "Švedija": "Sweden", "Norvegija": "Norway", "Suomija": "Finland", "Ispanija": "Spain",
+  "Portugalija": "Portugal", "Italija": "Italy", "Graikija": "Greece", "Turkija": "Turkey", "JAE": "UAE",
+  "Tailandas": "Thailand", "Singapūras": "Singapore", "Japonija": "Japan", "JAV": "USA",
+};
+window.EN_CITY = {
+  VNO: "Vilnius", KUN: "Kaunas", PLQ: "Palanga", RIX: "Riga", TLL: "Tallinn", WAW: "Warsaw", KRK: "Krakow", BER: "Berlin",
+  FRA: "Frankfurt", MUC: "Munich", LHR: "London (Heathrow)", STN: "London (Stansted)", DUB: "Dublin", CDG: "Paris",
+  AMS: "Amsterdam", BRU: "Brussels", ZRH: "Zurich", VIE: "Vienna", PRG: "Prague", BUD: "Budapest", CPH: "Copenhagen",
+  ARN: "Stockholm", OSL: "Oslo", HEL: "Helsinki", MAD: "Madrid", BCN: "Barcelona", LIS: "Lisbon", FCO: "Rome", MXP: "Milan",
+  ATH: "Athens", IST: "Istanbul", DXB: "Dubai", BKK: "Bangkok", SIN: "Singapore", HND: "Tokyo", JFK: "New York",
+  ORD: "Chicago", LAX: "Los Angeles",
+  LON: "London", PAR: "Paris", NYC: "New York", MIL: "Milan", ROM: "Rome", STO: "Stockholm", LGW: "London (Gatwick)",
+  LTN: "London (Luton)", ORY: "Paris (Orly)", BVA: "Paris (Beauvais)", SXF: "Berlin", HAM: "Hamburg", DUS: "Düsseldorf",
+  CGN: "Cologne", STR: "Stuttgart", NUE: "Nuremberg", EIN: "Eindhoven", RTM: "Rotterdam", CRL: "Brussels (Charleroi)",
+  GVA: "Geneva", BSL: "Basel", MLA: "Malta", LCA: "Larnaca", PFO: "Paphos", HER: "Heraklion", SKG: "Thessaloniki",
+  RHO: "Rhodes", CFU: "Corfu", SPU: "Split", DBV: "Dubrovnik", ZAG: "Zagreb", LJU: "Ljubljana", BEG: "Belgrade",
+  SOF: "Sofia", OTP: "Bucharest", CLJ: "Cluj-Napoca", BTS: "Bratislava", GDN: "Gdansk", WRO: "Wroclaw", POZ: "Poznan",
+  KTW: "Katowice", LUZ: "Lublin", RZE: "Rzeszow", AGP: "Malaga", ALC: "Alicante", PMI: "Palma de Mallorca", IBZ: "Ibiza",
+  TFS: "Tenerife", LPA: "Gran Canaria", SVQ: "Seville", VLC: "Valencia", OPO: "Porto", FAO: "Faro", NCE: "Nice",
+  MRS: "Marseille", LYS: "Lyon", TLS: "Toulouse", BOD: "Bordeaux", NAP: "Naples", VCE: "Venice", BLQ: "Bologna",
+  PSA: "Pisa", CTA: "Catania", PMO: "Palermo", CAG: "Cagliari", BGY: "Milan (Bergamo)", EDI: "Edinburgh", MAN: "Manchester",
+  BHX: "Birmingham", GLA: "Glasgow", BRS: "Bristol", LPL: "Liverpool", BLL: "Billund", GOT: "Gothenburg", BGO: "Bergen",
+  TRF: "Sandefjord", TKU: "Turku", RVN: "Rovaniemi", KEF: "Reykjavik", TRD: "Trondheim", AAR: "Aarhus", MMX: "Malmo",
+  NYO: "Stockholm (Skavsta)", TLV: "Tel Aviv", AMM: "Amman", CAI: "Cairo", HRG: "Hurghada", SSH: "Sharm El Sheikh",
+  RAK: "Marrakech", AUH: "Abu Dhabi", DOH: "Doha", TBS: "Tbilisi", EVN: "Yerevan", GYD: "Baku", KBP: "Kyiv", BOS: "Boston",
+  MIA: "Miami", SFO: "San Francisco", WAS: "Washington", YTO: "Toronto", YMQ: "Montreal", DMK: "Bangkok (Don Mueang)",
+  HKT: "Phuket", KUL: "Kuala Lumpur", DPS: "Bali", DEL: "Delhi", BOM: "Mumbai", CMB: "Colombo", MLE: "Male", HKG: "Hong Kong",
+  ICN: "Seoul", PEK: "Beijing", PVG: "Shanghai", NRT: "Tokyo (Narita)", TYO: "Tokyo", OSA: "Osaka", SYD: "Sydney",
+  JNB: "Johannesburg", CPT: "Cape Town", GRU: "São Paulo", GIG: "Rio de Janeiro", EZE: "Buenos Aires", RMI: "Rimini", TRN: "Turin",
+};
+CITY_NAMES.RMI = "Rimini"; CITY_NAMES.TRN = "Turinas";
+
+// Miesto ir šalies pavadinimas pagal pasirinktą kalbą
+window.airportCity = (a) => (LANG === "en" ? EN_CITY[a.code] || a.city : a.city);
+window.airportCountry = (a) => (LANG === "en" ? EN_COUNTRY[a.country] || a.country : a.country);
+window.destName = (code) => {
+  if (LANG === "en" && EN_CITY[code]) return EN_CITY[code];
+  const a = AIRPORTS.find((x) => x.code === code);
+  return a ? a.city : (CITY_NAMES[code] || code);
+};
