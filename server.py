@@ -18,9 +18,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-PUBLIC_FILES = {"index.html", "app.js", "data.js", "provider.js", "i18n.js", "legal.js", "privacy.html", "terms.html", "style.css"}
+PUBLIC_FILES = {"index.html", "app.js", "data.js", "provider.js", "i18n.js", "legal.js", "feedback.js", "favicon.svg", "privacy.html", "terms.html", "style.css"}
 ROUTES = {"/": "index.html", "/privacy": "privacy.html", "/terms": "terms.html"}
-CONTENT_TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8"}
+CONTENT_TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml"}
 AVIASALES = "https://www.aviasales.com"
 
 
@@ -43,6 +43,8 @@ API_URL = os.environ.get("TRAVELPAYOUTS_API_URL", "https://api.travelpayouts.com
 SERPAPI_KEY = os.environ.get("SERPAPI_KEY", "")
 SERPAPI_URL = os.environ.get("SERPAPI_URL", "https://serpapi.com/search.json")  # keičiama tik testams
 SERPAPI_MONTHLY_CAP = int(os.environ.get("SERPAPI_MONTHLY_CAP", "200"))  # saugiklis nemokamam limitui
+FEEDBACK_FILE = os.environ.get("FEEDBACK_FILE", str(ROOT / "feedback.jsonl"))
+FEEDBACK_NTFY_URL = os.environ.get("FEEDBACK_NTFY_URL", "")  # pvz. https://ntfy.sh/ilgas-atsitiktinis-pavadinimas
 PORT = int(os.environ.get("PORT", "5173"))
 HOST = os.environ.get("HOST", "127.0.0.1")
 
@@ -462,6 +464,60 @@ def rate_limited(ip):
     return len(recent) > RATE_LIMIT
 
 
+_fb_hits = {}
+FB_LIMIT, FB_WINDOW = 5, 3600  # ne daugiau kaip 5 atsiliepimai per valandą vienam IP
+
+
+def feedback_limited(ip):
+    now = time.time()
+    recent = [t for t in _fb_hits.get(ip, []) if now - t < FB_WINDOW] + [now]
+    _fb_hits[ip] = recent
+    if len(_fb_hits) > 2000:
+        _fb_hits.clear()
+    return len(recent) > FB_LIMIT
+
+
+def save_feedback(data):
+    """Atsiliepimas: įrašome į failą ir į žurnalą (Render Logs), o jei sukonfigūruota, siunčiame pranešimą per ntfy."""
+    line = json.dumps(data, ensure_ascii=False)
+    print(f"FEEDBACK {line}", flush=True)
+    try:
+        with open(FEEDBACK_FILE, "a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+    except OSError:
+        pass  # failų sistema gali būti tik skaitymui; žurnale atsiliepimas vis tiek lieka
+    if FEEDBACK_NTFY_URL.startswith("https://"):
+        stars = "★" * data["rating"] if data["rating"] else "be įvertinimo"
+        body = f"{stars}\n{data['message']}" + (f"\nKontaktas: {data['contact']}" if data["contact"] else "")
+        req = urllib.request.Request(FEEDBACK_NTFY_URL, data=body.encode("utf-8"), headers={"Title": "Skrydziu paieska: atsiliepimas"}, method="POST")
+        try:
+            urllib.request.urlopen(req, timeout=8, context=SSL_CONTEXT).close()
+        except (urllib.error.URLError, TimeoutError):
+            pass
+
+
+def handle_feedback(raw):
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return 400, {"error": "Neteisingi paieškos parametrai"}
+    if not isinstance(data, dict) or data.get("website"):   # „website“ – paslėptas spąstų laukas robotams
+        return 200, {"ok": True}
+    message = str(data.get("message", "")).strip()[:1000]
+    contact = str(data.get("contact", "")).strip()[:120]
+    try:
+        rating = int(data.get("rating") or 0)
+    except (TypeError, ValueError):
+        rating = 0
+    rating = rating if 1 <= rating <= 5 else 0
+    if len(message) < 3 and not rating:
+        return 400, {"error": "Neteisingi paieškos parametrai"}
+    lang = "en" if data.get("lang") == "en" else "lt"
+    save_feedback({"time": datetime.now().isoformat(timespec="seconds"), "rating": rating, "message": message,
+                   "contact": contact, "lang": lang})
+    return 200, {"ok": True}
+
+
 class Handler(BaseHTTPRequestHandler):
     def client_ip(self):
         # už Render/kitų proxy tikrasis IP yra X-Forwarded-For pirmame įraše
@@ -476,6 +532,21 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(data)
+
+    def do_POST(self):
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path != "/api/feedback":
+            return self.send(404, {"error": "Nerasta"})
+        if feedback_limited(self.client_ip()):
+            return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        if not 0 < length <= 4096:
+            return self.send(400, {"error": "Neteisingi paieškos parametrai"})
+        status, body = handle_feedback(self.rfile.read(length))
+        self.send(status, body)
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
