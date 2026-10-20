@@ -19,6 +19,7 @@
       <div class="modes" role="tablist">
         <button type="button" class="mode active" id="modeSearch" role="tab" data-i18n="modeSearch">Ieškoti skrydžio</button>
         <button type="button" class="mode" id="modeExplore" role="tab" data-i18n="modeExplore">Kur nuskristi?</button>
+        <button type="button" class="mode" id="modeWeekend" role="tab" data-i18n="modeWeekend">Savaitgalis</button>
       </div>
 
       <form id="search" class="card" autocomplete="off">
@@ -76,6 +77,27 @@
           <label class="check exdirect"><input type="checkbox" id="exDirect"> <span data-i18n="directOnly">Tik tiesioginiai</span></label>
           <button class="primary" type="submit" data-i18n="showDest">Rodyti kryptis</button>
         </div>
+      </form>
+
+      <form id="weekend" class="card" autocomplete="off" hidden>
+        <div class="grid explore">
+          <div class="field">
+            <label for="wkFrom" data-i18n="from">Iš</label>
+            <button type="button" id="wkLocate" class="link" data-i18n="locate">📍 Mano vieta</button>
+            <input id="wkFrom" list="airports" data-i18n-placeholder="placeholder" placeholder="Miestas arba kodas" required>
+          </div>
+          <div class="field">
+            <label for="wkBudget" data-i18n="budgetRound">Biudžetas už abi puses (€)</label>
+            <input id="wkBudget" type="number" min="20" max="5000" step="10" value="150">
+          </div>
+          <div class="field">
+            <label for="wkMonth" data-i18n="when">Kada</label>
+            <select id="wkMonth"></select>
+          </div>
+          <label class="check exdirect"><input type="checkbox" id="wkDirect"> <span data-i18n="directOnly">Tik tiesioginiai</span></label>
+          <button class="primary" type="submit" data-i18n="showWeekend">Rodyti savaitgalius</button>
+        </div>
+        <p class="hint" data-i18n="weekendHint">Išvykimas penktadienį ar šeštadienį, grįžimas sekmadienį ar pirmadienį. Kaina už abi puses.</p>
       </form>
     </div>
   </header>

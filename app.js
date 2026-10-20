@@ -75,6 +75,7 @@ function locateInto(input) {
 }
 $("locate").addEventListener("click", () => locateInto($("from")));
 $("exLocate").addEventListener("click", () => locateInto($("exFrom")));
+$("wkLocate").addEventListener("click", () => locateInto($("wkFrom")));
 
 $("swap").addEventListener("click", () => {
   [$("from").value, $("to").value] = [$("to").value, $("from").value];
@@ -191,11 +192,14 @@ function render() {
 }
 
 // ---- Režimai: paieška / „Kur nuskristi?“ ----
-function setMode(explore) {
-  $("modeSearch").classList.toggle("active", !explore);
-  $("modeExplore").classList.toggle("active", explore);
-  $("search").hidden = explore;
-  $("explore").hidden = !explore;
+function setMode(name) {
+  if (name === true) name = "explore";
+  if (name === false) name = "search";
+  [["modeSearch", "search"], ["modeExplore", "explore"], ["modeWeekend", "weekend"]]
+    .forEach(([id, key]) => $(id).classList.toggle("active", key === name));
+  $("search").hidden = name !== "search";
+  $("explore").hidden = name !== "explore";
+  $("weekend").hidden = name !== "weekend";
   $("toolbar").hidden = true;
   $("exToolbar").hidden = true;
   $("liveLink").hidden = true;
@@ -207,18 +211,22 @@ function setMode(explore) {
   $("demoNote").hidden = true;
   $("priceNote").hidden = true;
 }
-$("modeSearch").addEventListener("click", () => setMode(false));
-$("modeExplore").addEventListener("click", () => setMode(true));
+$("modeSearch").addEventListener("click", () => setMode("search"));
+$("modeExplore").addEventListener("click", () => setMode("explore"));
+$("modeWeekend").addEventListener("click", () => setMode("weekend"));
 
 // Mėnesių sąrašas: „Bet kada“ + kiti 12 mėnesių (pagal pasirinktą kalbą)
 function fillMonths() {
-  const keep = $("exMonth").value;
-  $("exMonth").innerHTML = `<option value="">${esc(t("anytime"))}</option>` + Array.from({ length: 12 }, (_, i) => {
+  const months = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
     const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     return `<option value="${value}">${d.toLocaleDateString(locale(), { year: "numeric", month: "long" })}</option>`;
   }).join("");
-  $("exMonth").value = keep;
+  [["exMonth", t("anytime")], ["wkMonth", t("next3")]].forEach(([id, first]) => {
+    const keep = $(id).value;
+    $(id).innerHTML = `<option value="">${esc(first)}</option>` + months;
+    $(id).value = keep;
+  });
 }
 
 $("explore").addEventListener("submit", async (e) => {
@@ -241,7 +249,31 @@ $("explore").addEventListener("submit", async (e) => {
   $("demoNote").hidden = !demo;
   setDemoNote();
   $("priceNote").hidden = demo || result.destinations.length === 0;
-  exState = { list: result.destinations, from, budget };
+  exState = { kind: "explore", list: result.destinations, from, budget };
+  renderExplore();
+});
+
+$("weekend").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const from = findAirport($("wkFrom").value);
+  if (!from) return ($("status").textContent = t("pickFrom"));
+  const budget = Math.max(0, +$("wkBudget").value || 0);
+  $("results").innerHTML = "";
+  shown = null;
+  $("exToolbar").hidden = true;
+  $("status").textContent = t("searchingWeekend", { from: airportCity(from) });
+  let result;
+  try {
+    result = await weekendFlights({ from: from.code, month: $("wkMonth").value, budget, direct: $("wkDirect").checked });
+  } catch (err) {
+    return ($("status").textContent = t("failWeekend"));
+  }
+  demo = result.demo;
+  lastNotice = result.notice || "";
+  $("demoNote").hidden = !demo;
+  setDemoNote();
+  $("priceNote").hidden = demo || result.destinations.length === 0;
+  exState = { kind: "weekend", list: result.destinations, from, budget };
   renderExplore();
 });
 
@@ -255,24 +287,33 @@ document.querySelectorAll("#exSortChips .chip").forEach((c) =>
 
 function renderExplore() {
   shown = "explore";
-  const { from, budget } = exState;
+  const { from, budget, kind } = exState;
+  const weekend = kind === "weekend";
   const list = [...exState.list].sort(byKey(exSort));
   const cheapest = Math.min(...list.map((o) => o.price));
   $("exToolbar").hidden = list.length === 0;
+  const budgetText = budget ? t("destBudget", { b: budget }) : "";
   $("status").textContent = list.length
-    ? t("destStatus", { from: airportCity(from), budget: budget ? t("destBudget", { b: budget }) : "", n: list.length })
-    : t("noDest");
-  $("results").innerHTML = list.map((o) => `
+    ? t(weekend ? "weekendStatus" : "destStatus", { from: airportCity(from), budget: budgetText, n: list.length })
+    : t(weekend ? "noWeekend" : "noDest");
+  const wd = (isoDay) => WEEKDAYS[LANG][new Date(`${isoDay.slice(0, 10)}T12:00:00Z`).getUTCDay()];
+  $("results").innerHTML = list.map((o) => {
+    const dates = weekend
+      ? `${wd(o.departIso)} ${fmtDate(o.departIso)} → ${wd(o.returnIso)} ${fmtDate(o.returnIso)} · ${nightsText(o.nights)}`
+      : fmtDate(o.departIso);
+    return `
     <article class="offer dest">
       <div>
         <div class="name">${esc(destName(o.dest))}${o.price === cheapest ? `<span class="tag">${t("tagCheapestF")}</span>` : ""}</div>
-        <div class="meta">${from.code} → ${esc(o.dest)} · ${fmtDate(o.departIso)} · ${stopsText(o.stops)} · ${esc(o.airline)}</div>
+        <div class="meta">${from.code} → ${esc(o.dest)} · ${dates} · ${stopsText(o.stops)} · ${esc(o.airline)}</div>
       </div>
       <div class="buy">
         <div class="price">${t("priceFrom", { p: `${o.price} ${money(o)}` })}</div>
+        ${weekend ? `<div class="pl">${t("priceRound")}</div>` : ""}
         <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? t("buyAirline", { a: esc(o.airline) }) : t("checkBuy")}</a>
       </div>
-    </article>`).join("");
+    </article>`;
+  }).join("");
 }
 
 // ---- Kainų kalendorius: pigiausia kaina kiekvienai dienai aplink pasirinktą datą ----

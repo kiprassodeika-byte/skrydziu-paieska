@@ -373,6 +373,79 @@ def explore(params):
     return 200, {"demo": False, "destinations": sorted(best.values(), key=lambda o: o["price"])}
 
 
+def weekend(params):
+    """Savaitgalio kelionės pirmyn ir atgal: išvykimas penktadienį/šeštadienį, grįžimas sekmadienį/pirmadienį.
+    Grąžina pigiausią pasiūlymą kiekvienai krypčiai (kaina yra už abi puses)."""
+    origin = params.get("from", [""])[0].upper()
+    month = params.get("month", [""])[0]
+    direct = params.get("direct", ["0"])[0] == "1"
+    try:
+        budget = int(params.get("budget", ["0"])[0])
+    except ValueError:
+        budget = 0
+    if not IATA.match(origin) or (month and not MONTH.match(month)):
+        return 400, {"error": "Neteisingi paieškos parametrai"}
+    if not TOKEN:
+        return 200, {"demo": True, "reason": "no_token"}
+
+    now = datetime.now()
+    if month:
+        months = [month]
+    else:  # „Bet kada“ = artimiausi trys mėnesiai
+        months = []
+        y, m = now.year, now.month
+        for _ in range(3):
+            months.append(f"{y:04d}-{m:02d}")
+            y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+
+    def fetch(ym):
+        query = {"origin": origin, "departure_at": ym, "currency": CURRENCY, "sorting": "price",
+                 "limit": 1000, "unique": "false", "one_way": "false"}
+        if direct:
+            query["direct"] = "true"
+        req = urllib.request.Request(f"{API_URL}?{urllib.parse.urlencode(query)}", headers={"X-Access-Token": TOKEN})
+        with urllib.request.urlopen(req, timeout=20, context=SSL_CONTEXT) as resp:
+            return json.load(resp)
+
+    payloads = []
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        futures = [pool.submit(fetch, ym) for ym in months]
+        for future in futures:
+            try:
+                payloads.append(future.result())
+            except urllib.error.HTTPError as err:
+                return 502, {"error": f"Aviasales API klaida {err.code}"}
+            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
+                return 502, {"error": "Nepavyko pasiekti Aviasales API"}
+
+    today = now.date().isoformat()
+    best = {}
+    for payload in payloads:
+        if not payload.get("success", True):
+            return 502, {"error": str(payload.get("error") or "Aviasales API grąžino klaidą")}
+        for item in payload.get("data", []):
+            try:
+                dest = (item.get("destination") or item.get("destination_airport") or "").upper()
+                dep, ret = item["departure_at"][:10], (item.get("return_at") or "")[:10]
+                if not IATA.match(dest) or dest == origin or not ret or dep < today:
+                    continue
+                d1, d2 = datetime.strptime(dep, "%Y-%m-%d"), datetime.strptime(ret, "%Y-%m-%d")
+                # Penktadienis (4) arba šeštadienis (5) -> sekmadienis (6) arba pirmadienis (0), 1-3 naktys
+                if d1.weekday() not in (4, 5) or d2.weekday() not in (6, 0) or not 1 <= (d2 - d1).days <= 3:
+                    continue
+                offer = normalize(item, origin, dest, 1)
+            except (KeyError, ValueError, TypeError):
+                continue
+            offer["stops"] = max(offer["stops"], int(item.get("return_transfers") or 0))
+            offer["dest"] = dest
+            offer["nights"] = (d2 - d1).days
+            if budget and offer["price"] > budget:
+                continue
+            if dest not in best or offer["price"] < best[dest]["price"]:
+                best[dest] = offer
+    return 200, {"demo": False, "destinations": sorted(best.values(), key=lambda o: (o["price"], o["departIso"]))}
+
+
 # Paprasta užklausų riba vienam IP, kad svetimi robotai neišnaudotų tavo API limito
 RATE_LIMIT, RATE_WINDOW = 20, 60  # užklausų per sekundžių langą
 _hits = {}
@@ -409,6 +482,11 @@ class Handler(BaseHTTPRequestHandler):
             if rate_limited(self.client_ip()):
                 return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
             status, body = search(urllib.parse.parse_qs(parsed.query))
+            return self.send(status, body)
+        if parsed.path == "/api/weekend":
+            if rate_limited(self.client_ip()):
+                return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
+            status, body = weekend(urllib.parse.parse_qs(parsed.query))
             return self.send(status, body)
         if parsed.path == "/api/explore":
             if rate_limited(self.client_ip()):

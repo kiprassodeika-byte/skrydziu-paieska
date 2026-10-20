@@ -80,6 +80,18 @@ window.DICT = {
     errApi: "Aviasales API klaida",
     errServer: "Serveris nepasiekiamas.",
     errServerGeneric: "Serverio klaida.",
+    modeWeekend: "Savaitgalis",
+    budgetRound: "Biudžetas už abi puses (€)",
+    showWeekend: "Rodyti savaitgalius",
+    next3: "Artimiausi 3 mėnesiai",
+    weekendHint: "Išvykimas penktadienį ar šeštadienį, grįžimas sekmadienį ar pirmadienį. Kaina už abi puses.",
+    searchingWeekend: "Ieškoma savaitgalio kelionių iš {from}…",
+    failWeekend: "Nepavyko gauti savaitgalio kelionių. Bandykite dar kartą.",
+    weekendStatus: "Savaitgalio kelionės iš {from}{budget}: {n}",
+    noWeekend: "Savaitgalio kelionių nerasta. Padidinkite biudžetą, pasirinkite „Artimiausi 3 mėnesiai“ arba kitą oro uostą.",
+    nightOne: "{n} naktis",
+    nightFew: "{n} naktys",
+    nightMany: "{n} naktų",
   },
   en: {
     title: "Flight search",
@@ -160,6 +172,18 @@ window.DICT = {
     errApi: "Aviasales API error",
     errServer: "Server unavailable.",
     errServerGeneric: "Server error.",
+    modeWeekend: "Weekend",
+    budgetRound: "Round-trip budget (€)",
+    showWeekend: "Show weekend trips",
+    next3: "Next 3 months",
+    weekendHint: "Depart Friday or Saturday, return Sunday or Monday. Price is for the round trip.",
+    searchingWeekend: "Searching weekend trips from {from}…",
+    failWeekend: "Couldn't load weekend trips. Try again.",
+    weekendStatus: "Weekend trips from {from}{budget}: {n}",
+    noWeekend: "No weekend trips found. Raise your budget, choose “Next 3 months”, or pick another airport.",
+    nightOne: "{n} night",
+    nightFew: "{n} nights",
+    nightMany: "{n} nights",
   },
 };
 
@@ -182,6 +206,11 @@ window.stopsText = function (n) {
   if (n === 0) return t("direct");
   if (LANG === "en") return t(n === 1 ? "stopsOne" : "stopsFew", { n });
   return t(n === 1 ? "stopsOne" : n < 10 ? "stopsFew" : "stopsMany", { n });
+};
+
+window.nightsText = function (n) {
+  if (LANG === "en") return t(n === 1 ? "nightOne" : "nightFew", { n });
+  return t(n === 1 ? "nightOne" : n < 10 ? "nightFew" : "nightMany", { n });
 };
 
 // Serverio (lietuviškus) klaidų tekstus paverčiame pasirinkta kalba

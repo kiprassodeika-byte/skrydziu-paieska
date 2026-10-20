@@ -134,3 +134,54 @@ async function exploreFlights(params) {
   return { destinations: exploreDemo(params), demo: true, notice };
 }
 window.exploreFlights = exploreFlights;
+
+
+// ---- Savaitgalio kelionės: išvykimas Pen/Šeš, grįžimas Sek/Pir, kaina už abi puses ----
+
+function weekendDemo({ from, month, budget, direct }) {
+  const origin = AIRPORTS.find((x) => x.code === from);
+  const base = month ? new Date(`${month}-01T12:00:00Z`) : new Date(Date.now() + 3 * 864e5);
+  const list = [];
+  for (const dest of AIRPORTS) {
+    if (dest.code === from) continue;
+    const rand = seeded(`wk${from}${dest.code}${month}`);
+    const km = haversineKm(origin, dest);
+    const stops = km < 1500 ? (rand() < 0.15 ? 1 : 0) : km < 5000 ? (rand() < 0.45 ? 1 : 0) : 1;
+    if (direct && stops > 0) continue;
+    const al = AIRLINES.filter((a) => (a.type === "longhaul" ? km > 2500 : a.type === "lowcost" ? km < 3500 : true))[0];
+    const price = Math.round((25 + km * 0.07 * al.factor) * (0.8 + rand() * 0.5) * 1.85);
+    if (budget && price > budget) continue;
+    const dep = new Date(base.getTime());
+    dep.setUTCDate(dep.getUTCDate() + ((5 - dep.getUTCDay() + 7) % 7) + 7 * Math.floor(rand() * 3));  // artimiausi penktadieniai
+    const nights = rand() < 0.5 ? 2 : 3;
+    const ret = new Date(dep.getTime() + nights * 864e5);
+    list.push({
+      dest: dest.code, airline: al.name, code: al.code, url: al.url, price, currency: "EUR", stops, nights,
+      departIso: dep.toISOString(), returnIso: ret.toISOString(), durationMin: Math.round((km / 780) * 60 + 30),
+    });
+  }
+  return list.sort((a, b) => a.price - b.price);
+}
+
+async function weekendFlights(params) {
+  const q = new URLSearchParams({ from: params.from, budget: params.budget || 0, direct: params.direct ? 1 : 0 });
+  if (params.month) q.set("month", params.month);
+  let notice = "";
+  try {
+    const res = await fetch(`/api/weekend?${q}`);
+    const body = await res.json();
+    if (res.ok && body.demo === false) {
+      const destinations = body.destinations.map((o) => {
+        const al = AIRLINES.find((a) => a.code === o.code);
+        return { ...o, airline: al ? al.name : o.code };
+      });
+      return { destinations, demo: false, notice: "" };
+    }
+    if (!res.ok) notice = body.error || "Serverio klaida.";
+  } catch (e) {
+    notice = "Serveris nepasiekiamas.";
+  }
+  await new Promise((r) => setTimeout(r, 400));
+  return { destinations: weekendDemo(params), demo: true, notice };
+}
+window.weekendFlights = weekendFlights;
