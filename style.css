@@ -352,3 +352,17 @@ body::after {
     rgba(255, 255, 255, .55) 90px, rgba(255, 255, 255, 0) 95px,
     rgba(255, 255, 255, .2) 96px, rgba(255, 255, 255, 0) 150px);
 }
+
+/* ===== Fonas: dangus virš debesų (mėlynas dangus, balti debesys apačioje) ===== */
+html { background: #5FB4FF; }
+body::before {
+  background: linear-gradient(180deg, #2F6BFF 0%, #5FB4FF 38%, #BDE8FF 70%, #F2FAFF 100%);
+}
+body::after {
+  background:
+    radial-gradient(ellipse 38% 16% at 14% 96%, #fff 0%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(ellipse 44% 20% at 46% 100%, #fff 0%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(ellipse 36% 15% at 84% 94%, #fff 0%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(ellipse 26% 10% at 66% 80%, rgba(255, 255, 255, .7) 0%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(ellipse 22% 9% at 22% 66%, rgba(255, 255, 255, .55) 0%, rgba(255, 255, 255, 0) 100%);
+}
