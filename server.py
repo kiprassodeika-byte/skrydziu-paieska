@@ -18,9 +18,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-PUBLIC_FILES = {"index.html", "app.js", "data.js", "provider.js", "i18n.js", "legal.js", "feedback.js", "favicon.svg", "privacy.html", "terms.html", "style.css"}
+PUBLIC_FILES = {"index.html", "app.js", "data.js", "provider.js", "i18n.js", "legal.js", "feedback.js", "favicon.svg", "og.jpg", "privacy.html", "terms.html", "style.css"}
 ROUTES = {"/": "index.html", "/privacy": "privacy.html", "/terms": "terms.html"}
-CONTENT_TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml"}
+CONTENT_TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".jpg": "image/jpeg"}
 AVIASALES = "https://www.aviasales.com"
 
 
