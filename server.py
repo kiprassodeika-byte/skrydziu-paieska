@@ -489,7 +489,7 @@ def save_feedback(data):
     if FEEDBACK_NTFY_URL.startswith("https://"):
         stars = "★" * data["rating"] if data["rating"] else "be įvertinimo"
         body = f"{stars}\n{data['message']}" + (f"\nKontaktas: {data['contact']}" if data["contact"] else "")
-        req = urllib.request.Request(FEEDBACK_NTFY_URL, data=body.encode("utf-8"), headers={"Title": "Skrydziu paieska: atsiliepimas"}, method="POST")
+        req = urllib.request.Request(FEEDBACK_NTFY_URL, data=body.encode("utf-8"), headers={"Title": "HopFriday: atsiliepimas"}, method="POST")
         try:
             urllib.request.urlopen(req, timeout=8, context=SSL_CONTEXT).close()
         except (urllib.error.URLError, TimeoutError):
