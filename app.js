@@ -45,12 +45,9 @@ function findAirport(text) {
 const iso = (d) => d.toISOString().slice(0, 10);
 const today = new Date();
 $("date").min = iso(today);
-// „Kur nuskristi?“ ir „Savaitgalis“: arba mėnuo, arba konkreti diena (pasirinkus vieną, kitas išvalomas)
-[["exMonth", "exDate"], ["wkMonth", "wkDate"]].forEach(([monthId, dateId]) => {
-  $(dateId).min = iso(today);
-  $(dateId).addEventListener("change", () => { if ($(dateId).value) $(monthId).value = ""; });
-  $(monthId).addEventListener("change", () => { if ($(monthId).value) $(dateId).value = ""; });
-});
+// „Kur nuskristi?“ ir „Savaitgalis“: nebūtina data (tuščia = bet kada)
+$("exDate").min = iso(today);
+$("wkDate").min = iso(today);
 $("date").value = iso(new Date(today.getTime() + 14 * 864e5));
 $("returnDate").min = $("date").value;
 
@@ -221,20 +218,6 @@ $("modeSearch").addEventListener("click", () => setMode("search"));
 $("modeExplore").addEventListener("click", () => setMode("explore"));
 $("modeWeekend").addEventListener("click", () => setMode("weekend"));
 
-// Mėnesių sąrašas: „Bet kada“ + kiti 12 mėnesių (pagal pasirinktą kalbą)
-function fillMonths() {
-  const months = Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    return `<option value="${value}">${d.toLocaleDateString(locale(), { year: "numeric", month: "long" })}</option>`;
-  }).join("");
-  [["exMonth", t("anytime")], ["wkMonth", t("next3")]].forEach(([id, first]) => {
-    const keep = $(id).value;
-    $(id).innerHTML = `<option value="">${esc(first)}</option>` + months;
-    $(id).value = keep;
-  });
-}
-
 $("explore").addEventListener("submit", async (e) => {
   e.preventDefault();
   const from = findAirport($("exFrom").value);
@@ -246,7 +229,7 @@ $("explore").addEventListener("submit", async (e) => {
   $("status").textContent = t("searchingDest", { from: airportCity(from) });
   let result;
   try {
-    result = await exploreFlights({ from: from.code, month: $("exMonth").value, date: $("exDate").value, budget, direct: $("exDirect").checked });
+    result = await exploreFlights({ from: from.code, date: $("exDate").value, budget, direct: $("exDirect").checked });
   } catch (err) {
     return ($("status").textContent = t("failDest"));
   }
@@ -272,7 +255,7 @@ $("weekend").addEventListener("submit", async (e) => {
   $("status").textContent = t("searchingWeekend", { from: airportCity(from) });
   let result;
   try {
-    result = await weekendFlights({ from: from.code, month: $("wkMonth").value, date: wkDay, budget, direct: $("wkDirect").checked });
+    result = await weekendFlights({ from: from.code, date: wkDay, budget, direct: $("wkDirect").checked });
   } catch (err) {
     return ($("status").textContent = t("failWeekend"));
   }
@@ -377,7 +360,6 @@ function setLang(code) {
   try { localStorage.setItem("lang", code); } catch (e) { /* privatus režimas */ }
   applyStatic();
   fillAirports();
-  fillMonths();
   if (!$("demoNote").hidden) setDemoNote();
   if (shown === "search") {
     render();
@@ -392,4 +374,3 @@ document.querySelectorAll(".lang").forEach((b) => b.addEventListener("click", ()
 // Pradinis užpildymas pagal išsaugotą / naršyklės kalbą
 applyStatic();
 fillAirports();
-fillMonths();
