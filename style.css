@@ -366,3 +366,14 @@ body::after {
     radial-gradient(ellipse 26% 10% at 66% 80%, rgba(255, 255, 255, .7) 0%, rgba(255, 255, 255, 0) 100%),
     radial-gradient(ellipse 22% 9% at 22% 66%, rgba(255, 255, 255, .55) 0%, rgba(255, 255, 255, 0) 100%);
 }
+
+/* HopFriday: prekės ženklo juosta */
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 10px; }
+.topbar .langs { margin: 0; }
+.brandmark {
+  display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px 5px 8px; border-radius: 999px; text-decoration: none;
+  font-weight: 700; font-size: 16px; letter-spacing: -.01em; color: var(--ink);
+  background: var(--gl); border: 1px solid var(--gl-edge); box-shadow: var(--gl-shadow);
+  -webkit-backdrop-filter: var(--gl-blur); backdrop-filter: var(--gl-blur);
+}
+.brandmark img { display: block; border-radius: 6px; }

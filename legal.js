@@ -9,7 +9,7 @@
     document.querySelectorAll("[data-l]").forEach((el) => (el.hidden = el.dataset.l !== lang));
     document.querySelectorAll(".lang").forEach((b) => b.classList.toggle("active", b.dataset.lang === lang));
     const h1 = document.querySelector(`article[data-l="${lang}"] h1`);
-    if (h1) document.title = h1.textContent;
+    if (h1) document.title = `HopFriday · ${h1.textContent}`;
   }
   document.querySelectorAll(".lang").forEach((b) =>
     b.addEventListener("click", () => {

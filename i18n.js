@@ -2,7 +2,7 @@
 // Naujam tekstui: pridėkite raktą į abi kalbas ir naudokite t("raktas", {kintamasis: reikšmė}).
 window.DICT = {
   lt: {
-    title: "Skrydžių paieška",
+    title: "HopFriday · Skrydžių paieška",
     h1: "Raskite skrydį",
     sub: "Palyginkite kainas ir nusipirkite tiesiai pas pardavėją.",
     modeSearch: "Ieškoti skrydžio",
@@ -109,7 +109,7 @@ window.DICT = {
     nightMany: "{n} naktų",
   },
   en: {
-    title: "Flight search",
+    title: "HopFriday · Flight search",
     h1: "Find your flight",
     sub: "Compare prices and buy directly from the seller.",
     modeSearch: "Search flights",
