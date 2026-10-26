@@ -256,26 +256,28 @@ def search(params):
 
 
 MONTH = re.compile(r"^\d{4}-\d{2}$")
+DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def explore(params):
     """Pigiausios kryptys iš vieno oro uosto (vienas pasiūlymas kiekvienai krypčiai)."""
     origin = params.get("from", [""])[0].upper()
     month = params.get("month", [""])[0]
+    day = params.get("date", [""])[0]
     direct = params.get("direct", ["0"])[0] == "1"
     try:
         budget = int(params.get("budget", ["0"])[0])
     except ValueError:
         budget = 0
-    if not IATA.match(origin) or (month and not MONTH.match(month)):
+    if not IATA.match(origin) or (month and not MONTH.match(month)) or (day and not DAY.match(day)):
         return 400, {"error": "Neteisingi paieškos parametrai"}
     if not TOKEN:
         return 200, {"demo": True, "reason": "no_token"}
 
     query = {"origin": origin, "currency": CURRENCY, "sorting": "price", "limit": 100,
              "unique": "true", "one_way": "true"}
-    if month:
-        query["departure_at"] = month
+    if day or month:
+        query["departure_at"] = day or month
     if direct:
         query["direct"] = "true"
     req = urllib.request.Request(f"{API_URL}?{urllib.parse.urlencode(query)}", headers={"X-Access-Token": TOKEN})
@@ -301,6 +303,8 @@ def explore(params):
             continue
         if offer["departIso"][:10] < today or (budget and offer["price"] > budget):
             continue
+        if day and offer["departIso"][:10] != day:
+            continue
         offer["dest"] = dest
         if dest not in best or offer["price"] < best[dest]["price"]:
             best[dest] = offer
@@ -312,18 +316,21 @@ def weekend(params):
     Grąžina pigiausią pasiūlymą kiekvienai krypčiai (kaina yra už abi puses)."""
     origin = params.get("from", [""])[0].upper()
     month = params.get("month", [""])[0]
+    day = params.get("date", [""])[0]
     direct = params.get("direct", ["0"])[0] == "1"
     try:
         budget = int(params.get("budget", ["0"])[0])
     except ValueError:
         budget = 0
-    if not IATA.match(origin) or (month and not MONTH.match(month)):
+    if not IATA.match(origin) or (month and not MONTH.match(month)) or (day and not DAY.match(day)):
         return 400, {"error": "Neteisingi paieškos parametrai"}
     if not TOKEN:
         return 200, {"demo": True, "reason": "no_token"}
 
     now = datetime.now()
-    if month:
+    if day:
+        months = [day]  # Aviasales departure_at priima ir konkrečią dieną
+    elif month:
         months = [month]
     else:  # „Bet kada“ = artimiausi trys mėnesiai
         months = []
@@ -361,7 +368,7 @@ def weekend(params):
             try:
                 dest = (item.get("destination") or item.get("destination_airport") or "").upper()
                 dep, ret = item["departure_at"][:10], (item.get("return_at") or "")[:10]
-                if not IATA.match(dest) or dest == origin or not ret or dep < today:
+                if not IATA.match(dest) or dest == origin or not ret or dep < today or (day and dep != day):
                     continue
                 d1, d2 = datetime.strptime(dep, "%Y-%m-%d"), datetime.strptime(ret, "%Y-%m-%d")
                 # Penktadienis (4) arba šeštadienis (5) -> sekmadienis (6) arba pirmadienis (0), 1-3 naktys

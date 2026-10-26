@@ -45,6 +45,12 @@ function findAirport(text) {
 const iso = (d) => d.toISOString().slice(0, 10);
 const today = new Date();
 $("date").min = iso(today);
+// „Kur nuskristi?“ ir „Savaitgalis“: arba mėnuo, arba konkreti diena (pasirinkus vieną, kitas išvalomas)
+[["exMonth", "exDate"], ["wkMonth", "wkDate"]].forEach(([monthId, dateId]) => {
+  $(dateId).min = iso(today);
+  $(dateId).addEventListener("change", () => { if ($(dateId).value) $(monthId).value = ""; });
+  $(monthId).addEventListener("change", () => { if ($(monthId).value) $(dateId).value = ""; });
+});
 $("date").value = iso(new Date(today.getTime() + 14 * 864e5));
 $("returnDate").min = $("date").value;
 
@@ -240,7 +246,7 @@ $("explore").addEventListener("submit", async (e) => {
   $("status").textContent = t("searchingDest", { from: airportCity(from) });
   let result;
   try {
-    result = await exploreFlights({ from: from.code, month: $("exMonth").value, budget, direct: $("exDirect").checked });
+    result = await exploreFlights({ from: from.code, month: $("exMonth").value, date: $("exDate").value, budget, direct: $("exDirect").checked });
   } catch (err) {
     return ($("status").textContent = t("failDest"));
   }
@@ -258,13 +264,15 @@ $("weekend").addEventListener("submit", async (e) => {
   const from = findAirport($("wkFrom").value);
   if (!from) return ($("status").textContent = t("pickFrom"));
   const budget = Math.max(0, +$("wkBudget").value || 0);
+  const wkDay = $("wkDate").value;
+  if (wkDay && ![5, 6].includes(new Date(`${wkDay}T12:00:00Z`).getUTCDay())) return ($("status").textContent = t("weekendDayWarn"));
   $("results").innerHTML = "";
   shown = null;
   $("exToolbar").hidden = true;
   $("status").textContent = t("searchingWeekend", { from: airportCity(from) });
   let result;
   try {
-    result = await weekendFlights({ from: from.code, month: $("wkMonth").value, budget, direct: $("wkDirect").checked });
+    result = await weekendFlights({ from: from.code, month: $("wkMonth").value, date: wkDay, budget, direct: $("wkDirect").checked });
   } catch (err) {
     return ($("status").textContent = t("failWeekend"));
   }

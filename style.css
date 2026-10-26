@@ -377,3 +377,13 @@ body::after {
   -webkit-backdrop-filter: var(--gl-blur); backdrop-filter: var(--gl-blur);
 }
 .brandmark img { display: block; border-radius: 6px; }
+
+/* „Kur nuskristi?“ ir „Savaitgalis“: papildomas laukas konkrečiai dienai */
+@media (min-width: 720px) {
+  .grid.explore { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .grid.explore > .exdirect { grid-column: 1 / 4; }
+  .grid.explore > .primary { grid-column: 4; }
+}
+@media (max-width: 719px) {
+  .grid.explore > .exday { grid-column: 1 / -1; }
+}
