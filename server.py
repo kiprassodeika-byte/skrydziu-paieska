@@ -531,7 +531,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
-        self.wfile.write(data)
+        if self.command != "HEAD":
+            self.wfile.write(data)
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -548,8 +549,13 @@ class Handler(BaseHTTPRequestHandler):
         status, body = handle_feedback(self.rfile.read(length))
         self.send(status, body)
 
+    def do_HEAD(self):  # stebėjimo paslaugos (UptimeRobot ir pan.) dažnai siunčia HEAD
+        self.do_GET()
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/health":
+            return self.send(200, {"ok": True})
         if parsed.path == "/api/search":
             if rate_limited(self.client_ip()):
                 return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
