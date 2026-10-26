@@ -214,9 +214,8 @@ input[type=text], input:not([type]), input[type=date], input[type=number], selec
 .grouphead span { background: #F1FAFF; }
 code { background: #f1f2f5; }
 
-/* ===== Fono nuotrauka + kiekvienas užrašas savo matinio stiklo kvadrate ===== */
+/* ===== Kiekvienas užrašas savo matinio stiklo kvadrate (fonas – žr. Glacier bloką žemiau) ===== */
 :root {
-  --photo: url("https://images.unsplash.com/photo-1631742272329-eeca83cb6886?q=80&w=2070&auto=format&fit=crop");
   --gl: rgba(255, 255, 255, .60); --gl-strong: rgba(255, 255, 255, .72); --gl-edge: rgba(255, 255, 255, .75);
   --gl-shadow: 0 8px 28px rgba(10, 20, 50, .28), inset 0 1px 0 rgba(255, 255, 255, .8);
   --gl-blur: blur(18px) saturate(1.5);
@@ -224,7 +223,6 @@ code { background: #f1f2f5; }
 html { background: #2b3b5e; }
 body::before {
   display: block; content: ""; position: fixed; inset: 0; z-index: -2; border-radius: 0; width: auto; height: auto; top: 0; right: 0; left: 0; bottom: 0;
-  background: var(--photo) center / cover no-repeat;
 }
 body::after {
   display: block; content: ""; position: fixed; inset: 0; z-index: -1; border-radius: 0; width: auto; height: auto; top: 0; right: 0; left: 0; bottom: 0;
