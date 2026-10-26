@@ -162,7 +162,7 @@ function render() {
   const card = (o) => `
     <article class="offer">
       <div>
-        <div class="airline">${esc(o.airline)}${o.source === "google" ? `<span class="tag">${t("tagLive")}</span>` : o.exact ? `<span class="tag">${t("tagYourDate")}</span>` : ""}${o.price === cheapest ? `<span class="tag">${t("tagCheapest")}</span>` : ""}</div>
+        <div class="airline">${esc(o.airline)}${o.exact ? `<span class="tag">${t("tagYourDate")}</span>` : ""}${o.price === cheapest ? `<span class="tag">${t("tagCheapest")}</span>` : ""}</div>
         <div class="times">
           <span class="t">${o.timeUnknown ? fmtDate(o.departIso) : (o.departLocal ?? fmtTime(o.departIso))}</span>
           <span class="line"><span>${o.durationMin ? fmtDur(o.durationMin) : t("timeUnknown")}</span></span>
@@ -174,7 +174,7 @@ function render() {
       <div class="buy">
         <div class="price">${o.price} ${money(o)}</div>
         <div class="pl">${o.returnIso ? t("priceRound") : t("priceOne")}</div>
-        <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? t("buyAirline", { a: esc(o.airline) }) : o.source === "google" ? t("openGoogle") : t("checkBuy")}</a>
+        <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? t("buyAirline", { a: esc(o.airline) }) : t("checkBuy")}</a>
       </div>
     </article>`;
 

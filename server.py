@@ -40,9 +40,6 @@ TOKEN = os.environ.get("TRAVELPAYOUTS_TOKEN", "")
 MARKER = os.environ.get("TRAVELPAYOUTS_MARKER", "")
 CURRENCY = os.environ.get("CURRENCY", "eur").lower()
 API_URL = os.environ.get("TRAVELPAYOUTS_API_URL", "https://api.travelpayouts.com/aviasales/v3/prices_for_dates")  # keičiama tik testams
-SERPAPI_KEY = os.environ.get("SERPAPI_KEY", "")
-SERPAPI_URL = os.environ.get("SERPAPI_URL", "https://serpapi.com/search.json")  # keičiama tik testams
-SERPAPI_MONTHLY_CAP = int(os.environ.get("SERPAPI_MONTHLY_CAP", "200"))  # saugiklis nemokamam limitui
 FEEDBACK_FILE = os.environ.get("FEEDBACK_FILE", str(ROOT / "feedback.jsonl"))
 FEEDBACK_NTFY_URL = os.environ.get("FEEDBACK_NTFY_URL", "")  # pvz. https://ntfy.sh/ilgas-atsitiktinis-pavadinimas
 PORT = int(os.environ.get("PORT", "5173"))
@@ -96,66 +93,6 @@ def normalize(item, origin, dest, adults):
         offer["returnIso"] = parse_dt(item["return_at"]).isoformat()
         offer["returnStops"] = int(item.get("return_transfers") or 0)
     return offer
-
-
-_serp_cache = {}   # (maršrutas) -> (laikas, pasiūlymai): kad nevartotume limito dėl pasikartojančių paieškų
-_serp_used = {"month": "", "count": 0}
-
-
-def serpapi_flights(origin, dest, date, return_date, adults):
-    """Gyvos Google Flights kainos tiksliai dienai (per SerpApi). Neprivaloma: be rakto grąžina [].
-    Niekada nemeta klaidos – jei nepavyksta, svetainė naudoja Aviasales duomenis."""
-    if not SERPAPI_KEY:
-        return []
-    key = (origin, dest, date, return_date)
-    now = time.time()
-    cached = _serp_cache.get(key)
-    if cached and now - cached[0] < 900:
-        return [dict(o, price=round(o["price"] / o["_adults"] * adults), _adults=adults) for o in cached[1]]
-    month = datetime.now().strftime("%Y-%m")
-    if _serp_used["month"] != month:
-        _serp_used.update(month=month, count=0)
-    if _serp_used["count"] >= SERPAPI_MONTHLY_CAP:
-        return []
-    _serp_used["count"] += 1
-    query = {"engine": "google_flights", "departure_id": origin, "arrival_id": dest, "outbound_date": date,
-             "type": "1" if return_date else "2", "currency": CURRENCY.upper(), "hl": "lt", "adults": "1",
-             "api_key": SERPAPI_KEY}
-    if return_date:
-        query["return_date"] = return_date
-    try:
-        req = urllib.request.Request(f"{SERPAPI_URL}?{urllib.parse.urlencode(query)}")
-        with urllib.request.urlopen(req, timeout=25, context=SSL_CONTEXT) as resp:
-            payload = json.load(resp)
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError):
-        return []
-    link = (payload.get("search_metadata") or {}).get("google_flights_url") or ""
-    offers = []
-    for item in (payload.get("best_flights") or []) + (payload.get("other_flights") or []):
-        try:
-            legs = item["flights"]
-            first, last = legs[0], legs[-1]
-            dep = first["departure_airport"]["time"]          # "2027-01-25 07:45" (oro uosto vietos laikas)
-            arr = last["arrival_airport"]["time"]
-            code = (first.get("flight_number") or "").split(" ")[0][:2].upper()
-            offer = {
-                "code": code, "airline": first.get("airline") or code,
-                "departIso": dep.replace(" ", "T") + ":00", "departLocal": dep[11:16],
-                "arriveIso": arr.replace(" ", "T") + ":00",
-                "durationMin": int(item.get("total_duration") or 0),
-                "stops": len(legs) - 1, "price": float(item["price"]), "_adults": 1,
-                "currency": CURRENCY.upper(), "url": link or affiliate_link(origin, dest, date, return_date, 1),
-                "source": "google", "exact": True,
-            }
-            if return_date:
-                offer["returnIso"] = f"{return_date}T00:00:00"
-            offers.append(offer)
-        except (KeyError, TypeError, ValueError, IndexError):
-            continue
-    _serp_cache[key] = (now, offers)
-    if len(_serp_cache) > 500:
-        _serp_cache.clear()
-    return [dict(o, price=round(o["price"] * adults), _adults=adults) for o in offers]
 
 
 class ApiError(Exception):
@@ -310,12 +247,6 @@ def search(params):
                 best[key] = offer
     # Aviasales senesni endpoint'ai maišo kainas į vieną ir į abi puses – paliekame tik prašomą tipą
     offers = [o for o in best.values() if bool(o.get("returnIso")) == bool(return_date)]
-    # Gyvos Google Flights kainos tiksliai dienai (jei sukonfigūruota): jos tikslesnės už talpyklą
-    live = [dict(o) for o in serpapi_flights(origin, dest, date, return_date, adults)]
-    for o in live:
-        o.pop("_adults", None)
-    if live:
-        offers = [o for o in offers if not o["exact"]] + live
     offers.sort(key=lambda o: (o["departIso"], o["price"]))
     offers = offers[:400]
     exact_count = sum(1 for o in offers if o["exact"])
