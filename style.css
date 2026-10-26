@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
-  --bg: #fff8f2; --ink: #2B2540; --muted: #5E5672; --line: #ebe3e6;
-  --brand: #D4561E; --brand-light: #F2A65A; --brand-ink: #B3470F; --good: #11805a;
+  --bg: #f4f8ff; --ink: #0F1B3D; --muted: #5A6A8C; --line: #dfe6f5;
+  --brand: #2F6BFF; --brand-light: #6FD3FF; --brand-ink: #1F55D6; --good: #11805a;
   --glass: rgba(255, 255, 255, .72); --glass-edge: rgba(255, 255, 255, .95);
   --shadow: 0 10px 30px rgba(160, 90, 40, .10);
 }
@@ -28,7 +28,7 @@ body::after { bottom: -160px; left: -120px; width: 480px; height: 480px; backgro
 .mode:hover { background: #fff; color: var(--ink); }
 .mode.active {
   background: #fff; color: var(--brand-ink); border-color: var(--glass-edge); font-weight: 600;
-  box-shadow: inset 0 1px 0 #fff, 0 4px 14px rgba(212, 86, 30, .18);
+  box-shadow: inset 0 1px 0 #fff, 0 4px 14px rgba(47, 107, 255, .18);
 }
 
 .card {
@@ -45,7 +45,7 @@ input[type=text], input:not([type]), input[type=date], input[type=number], selec
   width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; font: inherit; color: var(--ink);
   background: rgba(255, 255, 255, .85); box-shadow: inset 0 1px 2px rgba(160, 90, 40, .05); transition: border-color .15s, box-shadow .15s;
 }
-input:focus, select:focus { outline: none; border-color: var(--brand-light); box-shadow: 0 0 0 4px rgba(242, 166, 90, .35); }
+input:focus, select:focus { outline: none; border-color: var(--brand-light); box-shadow: 0 0 0 4px rgba(111, 211, 255, .5); }
 .link { background: none; border: 0; color: var(--brand-ink); font-size: 13px; padding: 2px 0; cursor: pointer; text-align: left; }
 .swap {
   border: 1px solid var(--line); background: #fff; color: var(--brand); width: 42px; height: 42px; border-radius: 50%;
@@ -54,9 +54,9 @@ input:focus, select:focus { outline: none; border-color: var(--brand-light); box
 .primary {
   grid-column: 1 / -1; border: 0; border-radius: 14px; padding: 13px 26px; font: inherit; font-weight: 600; color: #fff; cursor: pointer;
   background: linear-gradient(180deg, var(--brand-light) 0%, var(--brand) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 6px 14px rgba(212, 86, 30, .35); transition: transform .12s, box-shadow .12s;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 6px 14px rgba(47, 107, 255, .35); transition: transform .12s, box-shadow .12s;
 }
-.primary:hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 9px 18px rgba(212, 86, 30, .4); }
+.primary:hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 9px 18px rgba(47, 107, 255, .4); }
 .primary:active { transform: translateY(0); }
 @media (min-width: 720px) {
   .grid { grid-template-columns: minmax(150px, 1.3fr) auto minmax(190px, 1.4fr) 140px 140px 76px auto; }
@@ -82,7 +82,7 @@ main { padding-bottom: 56px; }
 .chip:hover { background: #fff; border-color: var(--brand-light); }
 .chip.active {
   color: #fff; border-color: transparent; background: linear-gradient(180deg, var(--brand-light), var(--brand));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 3px 8px rgba(212, 86, 30, .3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 3px 8px rgba(47, 107, 255, .3);
 }
 .check { font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
 .check input { accent-color: var(--brand); }
@@ -95,11 +95,11 @@ main { padding-bottom: 56px; }
 }
 .offer:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(160, 90, 40, .14), inset 0 1px 0 #fff; }
 .offer .airline { font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.offer .tag { font-size: 11px; font-weight: 600; background: #FFF1D6; color: #8A4B00; padding: 2px 9px; border-radius: 999px; border: 1px solid #FFD99A; }
+.offer .tag { font-size: 11px; font-weight: 600; background: #E6F7FF; color: #0B5FA5; padding: 2px 9px; border-radius: 999px; border: 1px solid #B9E7FF; }
 .times { display: flex; align-items: center; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
 .times .t { font-size: 20px; font-weight: 600; }
 .times .line { flex: 1; min-width: 60px; border-top: 2px solid var(--line); position: relative; text-align: center; font-size: 12px; color: var(--muted); }
-.times .line span { position: relative; top: -11px; background: #fffaf5; padding: 0 8px; }
+.times .line span { position: relative; top: -11px; background: #f8fbff; padding: 0 8px; }
 .meta { font-size: 13px; color: var(--muted); margin-top: 4px; }
 .buy { text-align: right; }
 .price { font-size: 26px; font-weight: 700; letter-spacing: -.01em; }
@@ -107,7 +107,7 @@ main { padding-bottom: 56px; }
 .buy a {
   display: inline-block; margin-top: 8px; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 14px;
   background: linear-gradient(180deg, var(--brand-light), var(--brand));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 4px 10px rgba(212, 86, 30, .3); transition: transform .12s;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 4px 10px rgba(47, 107, 255, .3); transition: transform .12s;
 }
 .buy a:hover { transform: translateY(-1px); }
 @media (max-width: 560px) {
@@ -155,10 +155,10 @@ input[type=text], input:not([type]), input[type=date], input[type=number], selec
 .day.cheap span { color: var(--good); font-weight: 700; }
 .day.sel {
   opacity: 1; color: #fff; border-color: transparent; background: linear-gradient(180deg, var(--brand-light), var(--brand));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 6px 14px rgba(212, 86, 30, .35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 6px 14px rgba(47, 107, 255, .35);
 }
 .day.sel small, .day.sel span { color: #fff; }
-.cal { scrollbar-width: thin; scrollbar-color: #efc9a3 transparent; }
+.cal { scrollbar-width: thin; scrollbar-color: #b9d4f5 transparent; }
 
 /* Viskas per vidurį: antraštė, režimai, forma, kalendorius ir rezultatai */
 .hero { text-align: center; }
@@ -174,12 +174,12 @@ input[type=text], input:not([type]), input[type=date], input[type=number], selec
 /* Grupių antraštės rezultatuose */
 .grouphead { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 22px 0 12px; font-size: 15px; font-weight: 600; color: var(--ink); }
 .grouphead::before, .grouphead::after { content: ""; flex: 1; max-width: 90px; height: 1px; background: var(--line); }
-.grouphead span { font-size: 12px; font-weight: 600; color: var(--brand-ink); background: #FFF1D6; border: 1px solid #FFD99A; border-radius: 999px; padding: 1px 9px; }
-.offer .tag { background: #FFF1D6; color: #8A4B00; border-color: #FFD99A; }
+.grouphead span { font-size: 12px; font-weight: 600; color: var(--brand-ink); background: #E6F7FF; border: 1px solid #B9E7FF; border-radius: 999px; padding: 1px 9px; }
+.offer .tag { background: #E6F7FF; color: #0B5FA5; border-color: #B9E7FF; }
 
 /* ===== Balta: tamsesni šonai, balta turinio kolona, kiekviena dalis turi savo šešėlį ===== */
 :root {
-  --bg: #fff; --ink: #2B2540; --muted: #5E5672; --line: #ebe3e6;
+  --bg: #fff; --ink: #0F1B3D; --muted: #5A6A8C; --line: #dfe6f5;
   --glass: #fff; --glass-edge: #eceef3;
   --shadow: 0 8px 24px rgba(20, 25, 40, .10), 0 2px 6px rgba(20, 25, 40, .06);
   --shadow-sm: 0 4px 14px rgba(20, 25, 40, .08), 0 1px 3px rgba(20, 25, 40, .06);
@@ -211,7 +211,7 @@ input[type=text], input:not([type]), input[type=date], input[type=number], selec
   background: #fff; border-color: #e3e5ea; box-shadow: 0 1px 3px rgba(20, 25, 40, .06);
 }
 .times .line span { background: #fff; }
-.grouphead span { background: #FFF6E4; }
+.grouphead span { background: #F1FAFF; }
 code { background: #f1f2f5; }
 
 /* ===== Fono nuotrauka + kiekvienas užrašas savo matinio stiklo kvadrate ===== */
@@ -325,7 +325,7 @@ dialog.fb::backdrop { background: rgba(10, 20, 40, .5); -webkit-backdrop-filter:
   width: 100%; padding: 12px 14px; font: inherit; color: var(--ink); resize: vertical; min-height: 96px;
   border: 1px solid #e3e5ea; border-radius: 14px; background: #fff; box-shadow: 0 1px 3px rgba(20, 25, 40, .06);
 }
-.fb-card textarea:focus { outline: none; border-color: var(--brand-light); box-shadow: 0 0 0 4px rgba(242, 166, 90, .35); }
+.fb-card textarea:focus { outline: none; border-color: var(--brand-light); box-shadow: 0 0 0 4px rgba(111, 211, 255, .5); }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .fb-note { font-size: 12px !important; }
 .fb-note a { color: var(--brand-ink); }
@@ -334,3 +334,23 @@ dialog.fb::backdrop { background: rgba(10, 20, 40, .5); -webkit-backdrop-filter:
 .fb-actions .primary { grid-column: auto; padding: 11px 24px; }
 .fb-cancel { font: inherit; cursor: pointer; padding: 11px 18px; border-radius: 14px; border: 1px solid #e3e5ea; background: #fff; color: var(--ink); }
 @media (max-width: 560px) { .fb-fab { right: 12px; bottom: 12px; padding: 9px 14px; } }
+
+/* ===== Glacier: balta, mėlynas švytėjimas su šerkšnotais brūkšniais (be nuotraukos) ===== */
+:root {
+  --gl-shadow: 0 8px 24px rgba(20, 40, 110, .16), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+html { background: #fff; }
+body::before {
+  display: block; content: ""; position: fixed; inset: 0; z-index: -2; width: auto; height: auto; border-radius: 0;
+  background:
+    radial-gradient(ellipse 62% 56% at 50% 46%, #B9F3FF 0%, #6FD3FF 30%, #2F6BFF 58%, rgba(47, 107, 255, 0) 80%),
+    radial-gradient(circle at 80% 30%, rgba(140, 123, 255, .85) 0%, rgba(140, 123, 255, 0) 26%),
+    #fff;
+}
+body::after {
+  display: block; content: ""; position: fixed; inset: 0; z-index: -1; width: auto; height: auto; border-radius: 0; pointer-events: none;
+  background: repeating-linear-gradient(90deg,
+    rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0) 88px,
+    rgba(255, 255, 255, .55) 90px, rgba(255, 255, 255, 0) 95px,
+    rgba(255, 255, 255, .2) 96px, rgba(255, 255, 255, 0) 150px);
+}
