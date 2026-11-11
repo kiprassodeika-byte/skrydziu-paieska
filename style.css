@@ -378,3 +378,19 @@ body::after {
 }
 .brandmark img { display: block; border-radius: 6px; }
 
+
+/* Oro uostų pasirinkimo sąrašas (vietoj naršyklės datalist) */
+input.ac {
+  padding-right: 38px; background-repeat: no-repeat; background-position: right 14px center; background-size: 12px 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235A6A8C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.ac-list {
+  position: absolute; z-index: 30; margin: 0; padding: 6px; list-style: none; max-height: 304px; overflow-y: auto; text-align: left;
+  background: rgba(255, 255, 255, .98); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 18px 40px rgba(20, 40, 110, .25);
+  -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
+.ac-list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 15px; color: var(--ink); }
+.ac-list li small { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.ac-list li.sel span { font-weight: 700; color: var(--brand-ink); }
+.ac-list li.active, .ac-list li[data-i]:hover { background: #e4eeff; }
+.ac-list li.none { cursor: default; color: var(--muted); }

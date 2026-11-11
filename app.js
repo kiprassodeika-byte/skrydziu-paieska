@@ -29,17 +29,119 @@ function byKey(kind, duration) {
   return (a, b) => key(a) - key(b) || a.price - b.price || when(a) - when(b);
 }
 
-// Oro uostų pasiūlymai laukeliuose (pagal pasirinktą kalbą)
-function fillAirports() {
-  $("airports").innerHTML = AIRPORTS.map((a) => `<option value="${esc(label(a))}">${esc(airportCountry(a))}</option>`).join("");
-}
+// Paieškai: be diakritinių ženklų ir mažosiomis („paryzius“ randa „Paryžius“)
+const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 function findAirport(text) {
-  const t0 = text.trim().toLowerCase();
+  const t0 = norm(text.trim());
   const code = t0.match(/\(([a-z]{3})\)/)?.[1] ?? (t0.length === 3 ? t0 : null);
-  const names = (a) => [a.city, EN_CITY[a.code]].filter(Boolean).map((n) => n.toLowerCase());
+  const names = (a) => [a.city, EN_CITY[a.code]].filter(Boolean).map(norm);
   return AIRPORTS.find((a) => a.code.toLowerCase() === code) ?? AIRPORTS.find((a) => names(a).some((n) => n.startsWith(t0)));
 }
+
+// Oro uostų pasirinkimas: paspaudus lauką rodomas visas sąrašas, rašant – filtruojamas
+const acList = document.createElement("ul");
+acList.id = "acList";
+acList.className = "ac-list";
+acList.setAttribute("role", "listbox");
+acList.hidden = true;
+document.body.appendChild(acList);
+let acInput = null, acItems = [], acActive = -1, acTouched = false;
+
+function acMatches(q) {
+  if (!q) return AIRPORTS;
+  const place = (a) => [a.city, EN_CITY[a.code], a.code].filter(Boolean).map(norm);
+  const land = (a) => [a.country, EN_COUNTRY[a.country]].filter(Boolean).map(norm);
+  const starts = AIRPORTS.filter((a) => [...place(a), ...land(a)].some((k) => k.startsWith(q)));
+  const rest = AIRPORTS.filter((a) => !starts.includes(a) && place(a).some((k) => k.includes(q)));
+  return [...starts, ...rest];
+}
+function acPlace() {
+  if (!acInput || acList.hidden) return;
+  const r = acInput.getBoundingClientRect();
+  acList.style.left = `${r.left + window.scrollX}px`;
+  acList.style.top = `${r.bottom + window.scrollY + 6}px`;
+  acList.style.width = `${r.width}px`;
+}
+function acMark() {
+  acList.querySelectorAll("li[data-i]").forEach((li) => {
+    const on = +li.dataset.i === acActive;
+    li.classList.toggle("active", on);
+    li.setAttribute("aria-selected", on);
+    if (on) acList.scrollTop = li.offsetTop - (acList.clientHeight - li.offsetHeight) / 2;
+  });
+  if (acActive >= 0) acInput.setAttribute("aria-activedescendant", `ac-${acActive}`);
+  else acInput.removeAttribute("aria-activedescendant");
+}
+function acOpen(showAll) {
+  const q = showAll ? "" : norm(acInput.value.trim());
+  acItems = acMatches(q);
+  const current = acInput.value.trim() ? findAirport(acInput.value) : null;
+  acActive = showAll ? acItems.indexOf(current) : (acItems.length ? 0 : -1);
+  acList.innerHTML = acItems.length
+    ? acItems.map((x, i) => `<li role="option" id="ac-${i}" data-i="${i}"${x === current ? ' class="sel"' : ""}><span>${esc(label(x))}</span><small>${esc(airportCountry(x))}</small></li>`).join("")
+    : `<li class="none">${esc(t("noAirport"))}</li>`;
+  acList.hidden = false;
+  acInput.setAttribute("aria-expanded", "true");
+  acPlace();
+  acList.scrollTop = 0;
+  acMark();
+}
+function acClose() {
+  acList.hidden = true;
+  if (acInput) {
+    acInput.setAttribute("aria-expanded", "false");
+    acInput.removeAttribute("aria-activedescendant");
+  }
+}
+function acChoose(x) {
+  acInput.value = label(x);
+  acClose();
+  acInput.dispatchEvent(new Event("change", { bubbles: true }));
+}
+["from", "to", "exFrom", "wkFrom"].forEach((id) => {
+  const input = $(id);
+  input.setAttribute("role", "combobox");
+  input.setAttribute("aria-autocomplete", "list");
+  input.setAttribute("aria-controls", "acList");
+  input.setAttribute("aria-expanded", "false");
+  input.classList.add("ac");
+  const openAll = () => { acInput = input; acTouched = false; acOpen(true); };
+  // Gavus fokusą pažymime visą tekstą, kad rašant jis būtų pakeistas. Pelės paspaudimas žymėjimą
+  // panaikina, todėl pirmą paspaudimą po fokuso pažymime dar kartą; vėlesni paspaudimai deda žymeklį įprastai.
+  let fresh = false;
+  input.addEventListener("focus", () => { fresh = true; openAll(); input.select(); });
+  input.addEventListener("click", () => {
+    if (fresh) input.select();
+    fresh = false;
+    if (acList.hidden) openAll();
+  });
+  input.addEventListener("input", () => { acInput = input; acTouched = true; acOpen(false); });
+  input.addEventListener("blur", () => setTimeout(() => { if (acInput === input && document.activeElement !== input) acClose(); }, 120));
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (acList.hidden) return openAll();
+      if (!acItems.length) return;
+      acTouched = true;
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      acActive = (acActive + step + acItems.length) % acItems.length;
+      acMark();
+    } else if (e.key === "Enter" && !acList.hidden && acTouched && acActive >= 0) {
+      e.preventDefault();  // pasirenkame iš sąrašo, formos dar nesiunčiame
+      acChoose(acItems[acActive]);
+    } else if (e.key === "Escape" || e.key === "Tab") {
+      acClose();
+    }
+  });
+});
+acList.addEventListener("mousedown", (e) => e.preventDefault());  // kad laukas neprarastų fokuso
+acList.addEventListener("click", (e) => {
+  const li = e.target.closest("li[data-i]");
+  if (li && acInput) acChoose(acItems[+li.dataset.i]);
+});
+window.addEventListener("resize", acPlace);
+document.querySelectorAll("form").forEach((f) => f.addEventListener("submit", acClose));
 
 // Datos
 const iso = (d) => d.toISOString().slice(0, 10);
@@ -359,7 +461,7 @@ function setLang(code) {
   window.LANG = code;
   try { localStorage.setItem("lang", code); } catch (e) { /* privatus režimas */ }
   applyStatic();
-  fillAirports();
+  acClose();
   if (!$("demoNote").hidden) setDemoNote();
   if (shown === "search") {
     render();
@@ -373,4 +475,3 @@ document.querySelectorAll(".lang").forEach((b) => b.addEventListener("click", ()
 
 // Pradinis užpildymas pagal išsaugotą / naršyklės kalbą
 applyStatic();
-fillAirports();
