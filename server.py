@@ -264,20 +264,25 @@ def explore(params):
     origin = params.get("from", [""])[0].upper()
     month = params.get("month", [""])[0]
     day = params.get("date", [""])[0]
+    back = params.get("returnDate", [""])[0]
+    round_trip = params.get("trip", ["oneway"])[0] == "return"
     direct = params.get("direct", ["0"])[0] == "1"
     try:
         budget = int(params.get("budget", ["0"])[0])
     except ValueError:
         budget = 0
-    if not IATA.match(origin) or (month and not MONTH.match(month)) or (day and not DAY.match(day)):
+    if (not IATA.match(origin) or (month and not MONTH.match(month)) or (day and not DAY.match(day))
+            or (back and not DAY.match(back))):
         return 400, {"error": "Neteisingi paieškos parametrai"}
     if not TOKEN:
         return 200, {"demo": True, "reason": "no_token"}
 
     query = {"origin": origin, "currency": CURRENCY, "sorting": "price", "limit": 100,
-             "unique": "true", "one_way": "true"}
+             "unique": "true", "one_way": "false" if round_trip else "true"}
     if day or month:
         query["departure_at"] = day or month
+    if round_trip and back:
+        query["return_at"] = back
     if direct:
         query["direct"] = "true"
     req = urllib.request.Request(f"{API_URL}?{urllib.parse.urlencode(query)}", headers={"X-Access-Token": TOKEN})
@@ -305,6 +310,11 @@ def explore(params):
             continue
         if day and offer["departIso"][:10] != day:
             continue
+        if round_trip:
+            if not offer.get("returnIso") or (back and offer["returnIso"][:10] != back):
+                continue
+            offer["nights"] = (datetime.strptime(offer["returnIso"][:10], "%Y-%m-%d") - datetime.strptime(offer["departIso"][:10], "%Y-%m-%d")).days
+            offer["stops"] = max(offer["stops"], int(item.get("return_transfers") or 0))
         offer["dest"] = dest
         if dest not in best or offer["price"] < best[dest]["price"]:
             best[dest] = offer

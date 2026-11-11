@@ -150,6 +150,21 @@ $("date").min = iso(today);
 // „Kur nuskristi?“ ir „Savaitgalis“: nebūtina data (tuščia = bet kada)
 $("exDate").min = iso(today);
 $("wkDate").min = iso(today);
+$("exReturn").min = iso(today);
+// „Kur nuskristi?“: į vieną pusę arba pirmyn–atgal
+const exRound = () => document.querySelector("input[name=exTrip]:checked").value === "return";
+function syncExploreTrip() {
+  const round = exRound();
+  $("exReturnField").hidden = !round;
+  $("explore").querySelector(".grid").classList.toggle("rt", round);
+  $("exBudgetLabel").dataset.i18n = round ? "budgetRound" : "budget";
+  applyStatic();
+}
+document.querySelectorAll("input[name=exTrip]").forEach((r) => r.addEventListener("change", syncExploreTrip));
+$("exDate").addEventListener("change", () => {
+  $("exReturn").min = $("exDate").value || iso(today);
+  if ($("exReturn").value && $("exReturn").value < $("exReturn").min) $("exReturn").value = "";
+});
 $("date").value = iso(new Date(today.getTime() + 14 * 864e5));
 $("returnDate").min = $("date").value;
 
@@ -331,7 +346,7 @@ $("explore").addEventListener("submit", async (e) => {
   $("status").textContent = t("searchingDest", { from: airportCity(from) });
   let result;
   try {
-    result = await exploreFlights({ from: from.code, date: $("exDate").value, budget, direct: $("exDirect").checked });
+    result = await exploreFlights({ from: from.code, date: $("exDate").value, trip: exRound() ? "return" : "oneway", returnDate: exRound() ? $("exReturn").value : "", budget, direct: $("exDirect").checked });
   } catch (err) {
     return ($("status").textContent = t("failDest"));
   }
@@ -340,7 +355,7 @@ $("explore").addEventListener("submit", async (e) => {
   $("demoNote").hidden = !demo;
   setDemoNote();
   $("priceNote").hidden = demo || result.destinations.length === 0;
-  exState = { kind: "explore", list: result.destinations, from, budget };
+  exState = { kind: "explore", list: result.destinations, from, budget, trip: exRound() ? "return" : "oneway" };
   renderExplore();
 });
 
@@ -382,6 +397,7 @@ function renderExplore() {
   shown = "explore";
   const { from, budget, kind } = exState;
   const weekend = kind === "weekend";
+  const roundTrip = weekend || exState.trip === "return";
   const list = [...exState.list].sort(byKey(exSort));
   const cheapest = Math.min(...list.map((o) => o.price));
   $("exToolbar").hidden = list.length === 0;
@@ -391,7 +407,7 @@ function renderExplore() {
     : t(weekend ? "noWeekend" : "noDest");
   const wd = (isoDay) => WEEKDAYS[LANG][new Date(`${isoDay.slice(0, 10)}T12:00:00Z`).getUTCDay()];
   $("results").innerHTML = list.map((o) => {
-    const dates = weekend
+    const dates = roundTrip && o.returnIso
       ? `${wd(o.departIso)} ${fmtDate(o.departIso)} → ${wd(o.returnIso)} ${fmtDate(o.returnIso)} · ${nightsText(o.nights)}`
       : fmtDate(o.departIso);
     return `
@@ -402,7 +418,7 @@ function renderExplore() {
       </div>
       <div class="buy">
         <div class="price">${t("priceFrom", { p: `${o.price} ${money(o)}` })}</div>
-        ${weekend ? `<div class="pl">${t("priceRound")}</div>` : ""}
+        ${roundTrip ? `<div class="pl">${t("priceRound")}</div>` : ""}
         <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? t("buyAirline", { a: esc(o.airline) }) : t("checkBuy")}</a>
       </div>
     </article>`;

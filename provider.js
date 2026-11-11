@@ -90,24 +90,31 @@ window.haversineKm = haversineKm;
 
 // ---- „Kur nuskristi?“: pigiausios kryptys iš vieno oro uosto ----
 
-function exploreDemo({ from, month, date, budget, direct }) {
+function exploreDemo({ from, date, trip, returnDate, budget, direct }) {
   const origin = AIRPORTS.find((x) => x.code === from);
+  const round = trip === "return";
   const list = [];
   for (const dest of AIRPORTS) {
     if (dest.code === from) continue;
-    const rand = seeded(`${from}${dest.code}${date || month}`);
+    const rand = seeded(`${from}${dest.code}${date}${round ? "r" : ""}`);
     const km = haversineKm(origin, dest);
     const stops = km < 1500 ? (rand() < 0.15 ? 1 : 0) : km < 5000 ? (rand() < 0.45 ? 1 : 0) : 1;
     if (direct && stops > 0) continue;
     const al = AIRLINES.filter((a) => (a.type === "longhaul" ? km > 2500 : a.type === "lowcost" ? km < 3500 : true))[0];
-    const price = Math.round((25 + km * 0.07 * al.factor) * (0.8 + rand() * 0.5));
+    const price = Math.round((25 + km * 0.07 * al.factor) * (0.8 + rand() * 0.5) * (round ? 1.85 : 1));
     if (budget && price > budget) continue;
-    const day = new Date(date ? `${date}T12:00:00` : month ? `${month}-01T00:00:00` : Date.now() + 14 * 864e5);
+    const day = new Date(date ? `${date}T12:00:00` : Date.now() + 14 * 864e5);
     if (!date) day.setDate(day.getDate() + Math.floor(rand() * 25));
-    list.push({
+    const offer = {
       dest: dest.code, airline: al.name, code: al.code, url: al.url, price, currency: "EUR",
       stops, departIso: day.toISOString(), durationMin: Math.round((km / 780) * 60 + 30),
-    });
+    };
+    if (round) {
+      const nights = returnDate && date ? Math.max(1, Math.round((new Date(`${returnDate}T12:00:00`) - day) / 864e5)) : 2 + Math.floor(rand() * 6);
+      offer.nights = nights;
+      offer.returnIso = new Date(day.getTime() + nights * 864e5).toISOString();
+    }
+    list.push(offer);
   }
   return list.sort((a, b) => a.price - b.price);
 }
@@ -116,6 +123,8 @@ async function exploreFlights(params) {
   const q = new URLSearchParams({ from: params.from, budget: params.budget || 0, direct: params.direct ? 1 : 0 });
   if (params.month) q.set("month", params.month);
   if (params.date) q.set("date", params.date);
+  if (params.trip === "return") q.set("trip", "return");
+  if (params.returnDate) q.set("returnDate", params.returnDate);
   let notice = "";
   try {
     const res = await fetch(`/api/explore?${q}`);
