@@ -489,3 +489,9 @@ input[type=date] { min-width: 0; max-width: 100%; }
   .srow2 .field.narrow { flex: 0 0 36%; }
   .grid.explore { column-gap: 14px; }
 }
+
+/* Tikroviškas debesų fonas (sugeneruotas fraktaliniu triukšmu); gradientas lieka kaip atsarginis */
+body::before {
+  background: url("/sky.jpg") center bottom / cover no-repeat, linear-gradient(180deg, #2F6BFF 0%, #5FB4FF 38%, #BDE8FF 70%, #F2FAFF 100%);
+}
+body::after { display: none; }

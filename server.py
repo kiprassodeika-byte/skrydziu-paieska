@@ -18,7 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-PUBLIC_FILES = {"index.html", "app.js", "data.js", "provider.js", "i18n.js", "legal.js", "feedback.js", "favicon.svg", "og.jpg", "privacy.html", "terms.html", "style.css", "robots.txt", "sitemap.xml", "googledc1b3f59849dd882.html"}
+PUBLIC_FILES = {"index.html", "app.js", "data.js", "provider.js", "i18n.js", "legal.js", "feedback.js", "favicon.svg", "og.jpg", "privacy.html", "terms.html", "style.css", "robots.txt", "sitemap.xml", "googledc1b3f59849dd882.html", "sky.jpg"}
 ROUTES = {"/": "index.html", "/privacy": "privacy.html", "/terms": "terms.html"}
 CONTENT_TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".txt": "text/plain; charset=utf-8", ".xml": "application/xml; charset=utf-8"}
 AVIASALES = "https://www.aviasales.com"
@@ -480,12 +480,12 @@ class Handler(BaseHTTPRequestHandler):
         forwarded = self.headers.get("X-Forwarded-For", "")
         return forwarded.split(",")[0].strip() or self.client_address[0]
 
-    def send(self, status, body, content_type="application/json; charset=utf-8"):
+    def send(self, status, body, content_type="application/json; charset=utf-8", cache="no-store"):
         data = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode()
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", cache)
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(data)
@@ -530,7 +530,8 @@ class Handler(BaseHTTPRequestHandler):
         name = ROUTES.get(parsed.path, parsed.path.lstrip("/"))
         if name not in PUBLIC_FILES:
             return self.send(404, {"error": "Nerasta"})
-        self.send(200, (ROOT / name).read_bytes(), CONTENT_TYPES[Path(name).suffix])
+        self.send(200, (ROOT / name).read_bytes(), CONTENT_TYPES[Path(name).suffix],
+                  "public, max-age=86400" if name == "sky.jpg" else "no-store")
 
     def log_message(self, fmt, *args):  # tyliau: be raktų žurnaluose
         pass
