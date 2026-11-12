@@ -430,3 +430,11 @@ input.ac {
   .grid.explore { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .grid.explore .field, .grid.explore input { min-width: 0; }
 }
+
+/* Formos be didelio baltos stiklo plokštės: laukai ir mygtukai tiesiog ant dangaus */
+form.card {
+  background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; padding: 0;
+}
+form.card .field label, form.card .hint { color: #fff; text-shadow: 0 1px 8px rgba(20, 40, 110, .45); }
+form.card .field .link { color: #fff; font-weight: 600; text-shadow: 0 1px 8px rgba(20, 40, 110, .45); }
+form.card .hint { font-size: 13px; }
