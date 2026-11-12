@@ -90,7 +90,7 @@ window.haversineKm = haversineKm;
 
 // ---- „Kur nuskristi?“: pigiausios kryptys iš vieno oro uosto ----
 
-function exploreDemo({ from, date, trip, returnDate, budget, direct }) {
+function exploreDemo({ from, date, trip, returnDate, budget, direct, adults = 1 }) {
   const origin = AIRPORTS.find((x) => x.code === from);
   const round = trip === "return";
   const list = [];
@@ -101,7 +101,7 @@ function exploreDemo({ from, date, trip, returnDate, budget, direct }) {
     const stops = km < 1500 ? (rand() < 0.15 ? 1 : 0) : km < 5000 ? (rand() < 0.45 ? 1 : 0) : 1;
     if (direct && stops > 0) continue;
     const al = AIRLINES.filter((a) => (a.type === "longhaul" ? km > 2500 : a.type === "lowcost" ? km < 3500 : true))[0];
-    const price = Math.round((25 + km * 0.07 * al.factor) * (0.8 + rand() * 0.5) * (round ? 1.85 : 1));
+    const price = Math.round((25 + km * 0.07 * al.factor) * (0.8 + rand() * 0.5) * (round ? 1.85 : 1) * adults);
     if (budget && price > budget) continue;
     const day = new Date(date ? `${date}T12:00:00` : Date.now() + 14 * 864e5);
     if (!date) day.setDate(day.getDate() + Math.floor(rand() * 25));
@@ -120,7 +120,7 @@ function exploreDemo({ from, date, trip, returnDate, budget, direct }) {
 }
 
 async function exploreFlights(params) {
-  const q = new URLSearchParams({ from: params.from, budget: params.budget || 0, direct: params.direct ? 1 : 0 });
+  const q = new URLSearchParams({ from: params.from, budget: params.budget || 0, direct: params.direct ? 1 : 0, adults: params.adults || 1 });
   if (params.month) q.set("month", params.month);
   if (params.date) q.set("date", params.date);
   if (params.trip === "return") q.set("trip", "return");
@@ -148,7 +148,7 @@ window.exploreFlights = exploreFlights;
 
 // ---- Savaitgalio kelionės: išvykimas Pen/Šeš, grįžimas Sek/Pir, kaina už abi puses ----
 
-function weekendDemo({ from, month, date, budget, direct }) {
+function weekendDemo({ from, month, date, budget, direct, adults = 1 }) {
   const origin = AIRPORTS.find((x) => x.code === from);
   const base = date ? new Date(`${date}T12:00:00Z`) : month ? new Date(`${month}-01T12:00:00Z`) : new Date(Date.now() + 3 * 864e5);
   const list = [];
@@ -159,7 +159,7 @@ function weekendDemo({ from, month, date, budget, direct }) {
     const stops = km < 1500 ? (rand() < 0.15 ? 1 : 0) : km < 5000 ? (rand() < 0.45 ? 1 : 0) : 1;
     if (direct && stops > 0) continue;
     const al = AIRLINES.filter((a) => (a.type === "longhaul" ? km > 2500 : a.type === "lowcost" ? km < 3500 : true))[0];
-    const price = Math.round((25 + km * 0.07 * al.factor) * (0.8 + rand() * 0.5) * 1.85);
+    const price = Math.round((25 + km * 0.07 * al.factor) * (0.8 + rand() * 0.5) * 1.85 * adults);
     if (budget && price > budget) continue;
     const dep = new Date(base.getTime());
     if (!date) dep.setUTCDate(dep.getUTCDate() + ((5 - dep.getUTCDay() + 7) % 7) + 7 * Math.floor(rand() * 3));  // artimiausi penktadieniai
@@ -174,7 +174,7 @@ function weekendDemo({ from, month, date, budget, direct }) {
 }
 
 async function weekendFlights(params) {
-  const q = new URLSearchParams({ from: params.from, budget: params.budget || 0, direct: params.direct ? 1 : 0 });
+  const q = new URLSearchParams({ from: params.from, budget: params.budget || 0, direct: params.direct ? 1 : 0, adults: params.adults || 1 });
   if (params.month) q.set("month", params.month);
   if (params.date) q.set("date", params.date);
   let notice = "";

@@ -464,3 +464,14 @@ form.card .hint { font-size: 13px; }
   .hero .modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
   .mode { white-space: normal; text-align: center; padding: 10px 6px; font-size: 13px; line-height: 1.2; }
 }
+
+/* „Kur nuskristi?“ ir „Savaitgalis“: keleivių laukas */
+.grid.explore .field.narrow input { text-align: left; }
+@media (min-width: 720px) {
+  .grid.explore { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .6fr); }
+  .grid.explore > .exdirect { grid-column: 1 / 3; }
+  .grid.explore > .primary { grid-column: 3 / 5; }
+  .grid.explore.rt { grid-template-columns: minmax(0, 1.3fr) minmax(0, .9fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .6fr); }
+  .grid.explore.rt > .exdirect { grid-column: 1 / 3; }
+  .grid.explore.rt > .primary { grid-column: 3 / 6; }
+}

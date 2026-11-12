@@ -334,6 +334,7 @@ function setMode(name) {
 $("modeSearch").addEventListener("click", () => setMode("search"));
 $("modeExplore").addEventListener("click", () => setMode("explore"));
 $("modeWeekend").addEventListener("click", () => setMode("weekend"));
+const paxOf = (id) => Math.max(1, Math.min(9, Math.round(+$(id).value) || 1));
 
 $("explore").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -346,7 +347,7 @@ $("explore").addEventListener("submit", async (e) => {
   $("status").textContent = t("searchingDest", { from: airportCity(from) });
   let result;
   try {
-    result = await exploreFlights({ from: from.code, date: $("exDate").value, trip: exRound() ? "return" : "oneway", returnDate: exRound() ? $("exReturn").value : "", budget, direct: $("exDirect").checked });
+    result = await exploreFlights({ from: from.code, date: $("exDate").value, trip: exRound() ? "return" : "oneway", returnDate: exRound() ? $("exReturn").value : "", budget, direct: $("exDirect").checked, adults: paxOf("exAdults") });
   } catch (err) {
     return ($("status").textContent = t("failDest"));
   }
@@ -355,7 +356,7 @@ $("explore").addEventListener("submit", async (e) => {
   $("demoNote").hidden = !demo;
   setDemoNote();
   $("priceNote").hidden = demo || result.destinations.length === 0;
-  exState = { kind: "explore", list: result.destinations, from, budget, trip: exRound() ? "return" : "oneway" };
+  exState = { kind: "explore", list: result.destinations, from, budget, trip: exRound() ? "return" : "oneway", adults: paxOf("exAdults") };
   renderExplore();
 });
 
@@ -372,7 +373,7 @@ $("weekend").addEventListener("submit", async (e) => {
   $("status").textContent = t("searchingWeekend", { from: airportCity(from) });
   let result;
   try {
-    result = await weekendFlights({ from: from.code, date: wkDay, budget, direct: $("wkDirect").checked });
+    result = await weekendFlights({ from: from.code, date: wkDay, budget, direct: $("wkDirect").checked, adults: paxOf("wkAdults") });
   } catch (err) {
     return ($("status").textContent = t("failWeekend"));
   }
@@ -381,7 +382,7 @@ $("weekend").addEventListener("submit", async (e) => {
   $("demoNote").hidden = !demo;
   setDemoNote();
   $("priceNote").hidden = demo || result.destinations.length === 0;
-  exState = { kind: "weekend", list: result.destinations, from, budget };
+  exState = { kind: "weekend", list: result.destinations, from, budget, adults: paxOf("wkAdults") };
   renderExplore();
 });
 
@@ -398,6 +399,7 @@ function renderExplore() {
   const { from, budget, kind } = exState;
   const weekend = kind === "weekend";
   const roundTrip = weekend || exState.trip === "return";
+  const pax = exState.adults || 1;
   const list = [...exState.list].sort(byKey(exSort));
   const cheapest = Math.min(...list.map((o) => o.price));
   $("exToolbar").hidden = list.length === 0;
@@ -418,7 +420,7 @@ function renderExplore() {
       </div>
       <div class="buy">
         <div class="price">${t("priceFrom", { p: `${o.price} ${money(o)}` })}</div>
-        ${roundTrip ? `<div class="pl">${t("priceRound")}</div>` : ""}
+        ${(roundTrip || pax > 1) ? `<div class="pl">${[roundTrip ? t("priceRound") : "", pax > 1 ? t("paxTotal", { n: pax }) : ""].filter(Boolean).join(" · ")}</div>` : ""}
         <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? t("buyAirline", { a: esc(o.airline) }) : t("checkBuy")}</a>
       </div>
     </article>`;

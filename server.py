@@ -268,6 +268,10 @@ def explore(params):
     round_trip = params.get("trip", ["oneway"])[0] == "return"
     direct = params.get("direct", ["0"])[0] == "1"
     try:
+        adults = max(1, min(9, int(params.get("adults", ["1"])[0])))
+    except ValueError:
+        adults = 1
+    try:
         budget = int(params.get("budget", ["0"])[0])
     except ValueError:
         budget = 0
@@ -303,7 +307,7 @@ def explore(params):
         if not IATA.match(dest) or dest == origin:
             continue
         try:
-            offer = normalize(item, origin, dest, 1)
+            offer = normalize(item, origin, dest, adults)
         except (KeyError, ValueError, TypeError):
             continue
         if offer["departIso"][:10] < today or (budget and offer["price"] > budget):
@@ -328,6 +332,10 @@ def weekend(params):
     month = params.get("month", [""])[0]
     day = params.get("date", [""])[0]
     direct = params.get("direct", ["0"])[0] == "1"
+    try:
+        adults = max(1, min(9, int(params.get("adults", ["1"])[0])))
+    except ValueError:
+        adults = 1
     try:
         budget = int(params.get("budget", ["0"])[0])
     except ValueError:
@@ -384,7 +392,7 @@ def weekend(params):
                 # Penktadienis (4) arba šeštadienis (5) -> sekmadienis (6) arba pirmadienis (0), 1-3 naktys
                 if d1.weekday() not in (4, 5) or d2.weekday() not in (6, 0) or not 1 <= (d2 - d1).days <= 3:
                     continue
-                offer = normalize(item, origin, dest, 1)
+                offer = normalize(item, origin, dest, adults)
             except (KeyError, ValueError, TypeError):
                 continue
             offer["stops"] = max(offer["stops"], int(item.get("return_transfers") or 0))
