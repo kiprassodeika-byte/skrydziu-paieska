@@ -196,3 +196,33 @@ async function weekendFlights(params) {
   return { destinations: weekendDemo(params), demo: true, notice };
 }
 window.weekendFlights = weekendFlights;
+
+
+// ---- „Pasiūlymai“: pigiausi skrydžiai iš visų oro uostų (po vieną kryptį) ----
+async function dealsFlights(params) {
+  const q = new URLSearchParams({ direct: params.direct ? 1 : 0 });
+  if (params.trip === "return") q.set("trip", "return");
+  let notice = "";
+  try {
+    const res = await fetch(`/api/deals?${q}`);
+    const body = await res.json();
+    if (res.ok && body.demo === false) {
+      const destinations = body.destinations.map((o) => {
+        const al = AIRLINES.find((a) => a.code === o.code);
+        return { ...o, airline: al ? al.name : o.code };
+      });
+      return { destinations, demo: false, notice: "" };
+    }
+    if (!res.ok) notice = body.error || "Serverio klaida.";
+  } catch (e) {
+    notice = "Serveris nepasiekiamas.";
+  }
+  await new Promise((r) => setTimeout(r, 400));
+  const origins = ["VNO", "KUN", "PLQ", "RIX"], best = {};
+  origins.forEach((from) => exploreDemo({ from, trip: params.trip, direct: params.direct, adults: 1, budget: 0 }).forEach((o) => {
+    if (origins.includes(o.dest)) return;
+    if (!best[o.dest] || o.price < best[o.dest].price) best[o.dest] = { ...o, origin: from };
+  }));
+  return { destinations: Object.values(best).sort((a, b) => a.price - b.price), demo: true, notice };
+}
+window.dealsFlights = dealsFlights;

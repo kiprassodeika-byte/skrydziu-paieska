@@ -397,17 +397,11 @@ document.querySelectorAll("#exSortChips .chip").forEach((c) =>
   })
 );
 
-// ---- „Pasiūlymai“: pigiausi skrydžiai iškart, be jokių laukų ----
-const DEAL_ORIGINS = ["VNO", "KUN", "PLQ", "RIX"];
-const dealPrefs = { from: "VNO", trip: "return", direct: false };
+// ---- „Pasiūlymai“: pigiausi skrydžiai iš visų oro uostų, iškart, be jokių laukų ----
+const dealPrefs = { trip: "return", direct: false };
 try { Object.assign(dealPrefs, JSON.parse(localStorage.getItem("deals") || "{}")); } catch (e) { /* privatus režimas */ }
-if (!DEAL_ORIGINS.includes(dealPrefs.from)) dealPrefs.from = "VNO";
 let dealToken = 0;
 function renderDealChips() {
-  $("dealFrom").innerHTML = DEAL_ORIGINS.map((code) => {
-    const ap = AIRPORTS.find((x) => x.code === code);
-    return `<button type="button" class="chip${dealPrefs.from === code ? " active" : ""}" data-from="${code}">${esc(airportCity(ap))}</button>`;
-  }).join("");
   $("dealOpts").innerHTML =
     `<button type="button" class="chip${dealPrefs.trip === "return" ? " active" : ""}" data-trip="return">${esc(t("dealsRound"))}</button>` +
     `<button type="button" class="chip${dealPrefs.trip === "oneway" ? " active" : ""}" data-trip="oneway">${esc(t("dealsOne"))}</button>` +
@@ -416,13 +410,12 @@ function renderDealChips() {
 async function loadDeals() {
   renderDealChips();
   const token = ++dealToken;
-  const from = AIRPORTS.find((x) => x.code === dealPrefs.from);
   $("results").innerHTML = "";
   $("exToolbar").hidden = true;
-  $("status").textContent = t("searchingDest", { from: airportCity(from) });
+  $("status").textContent = t("dealsLoading");
   let result;
   try {
-    result = await exploreFlights({ from: from.code, date: "", trip: dealPrefs.trip, returnDate: "", budget: 0, direct: dealPrefs.direct, adults: 1 });
+    result = await dealsFlights({ trip: dealPrefs.trip, direct: dealPrefs.direct });
   } catch (err) {
     if (token === dealToken) $("status").textContent = t("failDest");
     return;
@@ -432,17 +425,16 @@ async function loadDeals() {
   lastNotice = result.notice || "";
   $("demoNote").hidden = !demo;
   setDemoNote();
-  const list = [...result.destinations].sort((x, y) => x.price - y.price).slice(0, 24);
+  const list = result.destinations.slice(0, 24);
   $("priceNote").hidden = demo || list.length === 0;
   exSort = "price";
   document.querySelectorAll("#exSortChips .chip").forEach((x) => x.classList.toggle("active", x.dataset.sort === "price"));
-  exState = { kind: "explore", list, from, budget: 0, trip: dealPrefs.trip, adults: 1, deals: true };
+  exState = { kind: "explore", list, from: AIRPORTS[0], budget: 0, trip: dealPrefs.trip, adults: 1, deals: true };
   renderExplore();
 }
 $("deals").addEventListener("click", (e) => {
   const b = e.target.closest(".chip");
   if (!b) return;
-  if (b.dataset.from) dealPrefs.from = b.dataset.from;
   if (b.dataset.trip) dealPrefs.trip = b.dataset.trip;
   if (b.dataset.direct) dealPrefs.direct = !dealPrefs.direct;
   try { localStorage.setItem("deals", JSON.stringify(dealPrefs)); } catch (err) { /* privatus režimas */ }
@@ -471,7 +463,7 @@ function renderExplore() {
     <article class="offer dest">
       <div>
         <div class="name">${esc(destName(o.dest))}${o.price === cheapest ? `<span class="tag">${t("tagCheapestF")}</span>` : ""}</div>
-        <div class="meta">${from.code} → ${esc(o.dest)} · ${dates} · ${stopsText(o.stops)} · ${esc(o.airline)}</div>
+        <div class="meta">${o.origin || from.code} → ${esc(o.dest)} · ${dates} · ${stopsText(o.stops)} · ${esc(o.airline)}</div>
       </div>
       <div class="buy">
         <div class="price">${t("priceFrom", { p: `${o.price} ${money(o)}` })}</div>

@@ -325,6 +325,49 @@ def explore(params):
     return 200, {"demo": False, "destinations": sorted(best.values(), key=lambda o: o["price"])}
 
 
+DEAL_ORIGINS = ["VNO", "KUN", "PLQ", "RIX"]
+_deals_cache = {}
+
+
+def deals(params):
+    """Pigiausi skrydžiai iš visų pagrindinių oro uostų kartu: po vieną (pigiausią) pasiūlymą kiekvienai krypčiai.
+    Rezultatas talpinamas 10 min., kad kiekvienas lankytojas nekviestų keturių užklausų."""
+    trip = "return" if params.get("trip", [""])[0] == "return" else "oneway"
+    direct = "1" if params.get("direct", ["0"])[0] == "1" else "0"
+    key = (trip, direct)
+    now = time.time()
+    cached = _deals_cache.get(key)
+    if cached and now - cached[0] < 600:
+        return 200, cached[1]
+    if not TOKEN:
+        return 200, {"demo": True, "reason": "no_token"}
+
+    def one(origin):
+        return explore({"from": [origin], "budget": ["0"], "direct": [direct], "trip": [trip], "adults": ["1"]})
+
+    with ThreadPoolExecutor(max_workers=len(DEAL_ORIGINS)) as pool:
+        results = list(pool.map(one, DEAL_ORIGINS))
+    best, failed = {}, 0
+    for origin, (status, body) in zip(DEAL_ORIGINS, results):
+        if status != 200 or body.get("demo"):
+            failed += 1
+            continue
+        for offer in body.get("destinations", []):
+            dest = offer["dest"]
+            if dest in DEAL_ORIGINS:      # be „skrydžių“ tarp pačių mūsų oro uostų
+                continue
+            offer["origin"] = origin
+            if dest not in best or offer["price"] < best[dest]["price"]:
+                best[dest] = offer
+    if not best:
+        return 502, {"error": "Nepavyko pasiekti Aviasales API" if failed else "Pasiūlymų nerasta"}
+    body = {"demo": False, "destinations": sorted(best.values(), key=lambda o: o["price"])[:40]}
+    if len(_deals_cache) > 20:
+        _deals_cache.clear()
+    _deals_cache[key] = (now, body)
+    return 200, body
+
+
 def weekend(params):
     """Savaitgalio kelionės pirmyn ir atgal: išvykimas penktadienį/šeštadienį, grįžimas sekmadienį/pirmadienį.
     Grąžina pigiausią pasiūlymą kiekvienai krypčiai (kaina yra už abi puses)."""
@@ -521,6 +564,11 @@ class Handler(BaseHTTPRequestHandler):
             if rate_limited(self.client_ip()):
                 return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
             status, body = weekend(urllib.parse.parse_qs(parsed.query))
+            return self.send(status, body)
+        if parsed.path == "/api/deals":
+            if rate_limited(self.client_ip()):
+                return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
+            status, body = deals(urllib.parse.parse_qs(parsed.query))
             return self.send(status, body)
         if parsed.path == "/api/explore":
             if rate_limited(self.client_ip()):
