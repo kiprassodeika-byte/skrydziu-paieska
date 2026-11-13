@@ -218,7 +218,7 @@ async function dealsFlights(params) {
     notice = "Serveris nepasiekiamas.";
   }
   await new Promise((r) => setTimeout(r, 400));
-  const origins = ["VNO", "KUN", "PLQ", "RIX"], best = {};
+  const origins = ["VNO", "KUN", "PLQ"], best = {};
   origins.forEach((from) => exploreDemo({ from, trip: params.trip, direct: params.direct, adults: 1, budget: 0 }).forEach((o) => {
     if (origins.includes(o.dest)) return;
     if (!best[o.dest] || o.price < best[o.dest].price) best[o.dest] = { ...o, origin: from };

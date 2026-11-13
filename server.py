@@ -325,7 +325,7 @@ def explore(params):
     return 200, {"demo": False, "destinations": sorted(best.values(), key=lambda o: o["price"])}
 
 
-DEAL_ORIGINS = ["VNO", "KUN", "PLQ", "RIX"]
+DEAL_ORIGINS = ["VNO", "KUN", "PLQ"]   # tik Lietuvos oro uostai
 _deals_cache = {}
 
 
