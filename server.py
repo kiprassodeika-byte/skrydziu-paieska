@@ -18,8 +18,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-PUBLIC_FILES = {"index.html", "app.js", "data.js", "provider.js", "i18n.js", "legal.js", "feedback.js", "favicon.svg", "og.jpg", "privacy.html", "terms.html", "style.css", "robots.txt", "sitemap.xml", "googledc1b3f59849dd882.html", "sky.jpg"}
-ROUTES = {"/": "index.html", "/privacy": "privacy.html", "/terms": "terms.html"}
+PUBLIC_FILES = {"index.html", "app.js", "data.js", "provider.js", "i18n.js", "legal.js", "feedback.js", "favicon.svg", "og.jpg", "privacy.html", "terms.html", "style.css", "robots.txt", "sitemap.xml", "googledc1b3f59849dd882.html", "sky.jpg", "photos.js", "photos.html"}
+ROUTES = {"/": "index.html", "/privacy": "privacy.html", "/terms": "terms.html", "/photos": "photos.html"}
 CONTENT_TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".txt": "text/plain; charset=utf-8", ".xml": "application/xml; charset=utf-8"}
 AVIASALES = "https://www.aviasales.com"
 
@@ -575,6 +575,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(429, {"error": "Per daug užklausų. Pabandykite už minutės."})
             status, body = explore(urllib.parse.parse_qs(parsed.query))
             return self.send(status, body)
+        if parsed.path.startswith("/img/"):
+            f = parsed.path[5:]
+            if not re.fullmatch(r"[a-z0-9-]+\.jpg", f) or not (ROOT / "img" / f).is_file():
+                return self.send(404, {"error": "Nerasta"})
+            return self.send(200, (ROOT / "img" / f).read_bytes(), "image/jpeg", "public, max-age=604800")
+        if parsed.path == "/photo_credits.json":
+            return self.send(200, (ROOT / "photo_credits.json").read_bytes(), "application/json; charset=utf-8", "public, max-age=3600")
         name = ROUTES.get(parsed.path, parsed.path.lstrip("/"))
         if name not in PUBLIC_FILES:
             return self.send(404, {"error": "Nerasta"})

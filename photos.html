@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="lt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HopFriday · Nuotraukų autoriai</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#2F6BFF">
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .credits { columns: 1; margin: 12px 0 0; padding: 0; list-style: none; font-size: 14px; }
+    @media (min-width: 640px) { .credits { columns: 2; column-gap: 28px; } }
+    .credits li { break-inside: avoid; margin: 0 0 10px; line-height: 1.35; }
+    .credits b { font-weight: 700; }
+    .credits small { display: block; color: #5A6A8C; }
+  </style>
+</head>
+<body class="legal-page">
+  <div class="page">
+    <div class="wrap">
+      <div class="langs" role="group" aria-label="Language">
+        <button type="button" class="lang" data-lang="lt">LT</button>
+        <button type="button" class="lang" data-lang="en">EN</button>
+      </div>
+      <a class="backlink" href="/"><span data-l="lt">← Į pradžią</span><span data-l="en">← Back to search</span></a>
+
+      <article class="card legal" data-l="lt">
+        <h1>Nuotraukų autoriai</h1>
+        <p>Pasiūlymų nuotraukos yra iš „Wikimedia Commons“ ir naudojamos pagal jų atvirąsias licencijas. Nuotraukos gali būti apkarpytos ir sumažintos. Autoriai ir licencijos:</p>
+        <ul class="credits" id="creditsLt"></ul>
+      </article>
+      <article class="card legal" data-l="en">
+        <h1>Photo credits</h1>
+        <p>The destination photos come from Wikimedia Commons and are used under their open licenses. Photos may be cropped and resized. Authors and licenses:</p>
+        <ul class="credits" id="creditsEn"></ul>
+      </article>
+
+      <nav class="credit legal-links"><a href="/privacy" data-l="lt">Privatumo politika</a><a href="/privacy" data-l="en">Privacy policy</a> · <a href="/terms" data-l="lt">Naudojimo sąlygos</a><a href="/terms" data-l="en">Terms of use</a></nav>
+    </div>
+  </div>
+  <script src="legal.js"></script>
+  <script>
+    fetch("/photo_credits.json").then((r) => r.json()).then((c) => {
+      const esc = (s) => String(s).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+      const html = Object.keys(c).sort().map((k) => {
+        const v = c[k], lic = v.licenseUrl ? `<a href="${esc(v.licenseUrl)}" target="_blank" rel="noopener noreferrer">${esc(v.license)}</a>` : esc(v.license || "");
+        return `<li><b>${esc(v.title)}</b><small>${esc(v.artist || "Wikimedia Commons")} · ${lic} · <a href="${esc(v.page)}" target="_blank" rel="noopener noreferrer">šaltinis / source</a></small></li>`;
+      }).join("");
+      document.getElementById("creditsLt").innerHTML = html;
+      document.getElementById("creditsEn").innerHTML = html;
+    }).catch(() => {});
+  </script>
+</body>
+</html>

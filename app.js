@@ -441,6 +441,13 @@ $("deals").addEventListener("click", (e) => {
   loadDeals();
 });
 
+// Miesto nuotrauka prie pasiūlymo (Wikimedia Commons; autoriai: /photos)
+const photoOf = (code) => (window.PHOTO_MAP && PHOTO_MAP[code]) || "";
+const photoHTML = (code, name) => {
+  const f = photoOf(code);
+  return f ? `<img class="cityimg" src="/img/${f}.jpg" alt="${esc(name)}" loading="lazy" decoding="async" width="420" height="280">` : "";
+};
+
 function renderExplore() {
   shown = "explore";
   const { from, budget, kind } = exState;
@@ -460,8 +467,9 @@ function renderExplore() {
       ? `${wd(o.departIso)} ${fmtDate(o.departIso)} → ${wd(o.returnIso)} ${fmtDate(o.returnIso)} · ${nightsText(o.nights)}`
       : fmtDate(o.departIso);
     return `
-    <article class="offer dest">
-      <div>
+    <article class="offer dest${photoOf(o.dest) ? " hasimg" : ""}">
+      ${photoHTML(o.dest, destName(o.dest))}
+      <div class="info">
         <div class="name">${esc(destName(o.dest))}${o.price === cheapest ? `<span class="tag">${t("tagCheapestF")}</span>` : ""}</div>
         <div class="meta">${o.origin || from.code} → ${esc(o.dest)} · ${dates} · ${stopsText(o.stops)} · ${esc(o.airline)}</div>
       </div>
