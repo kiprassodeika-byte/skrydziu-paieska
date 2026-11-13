@@ -40,12 +40,19 @@
       <h1 data-i18n="h1">Raskite skrydį</h1>
       <p class="sub" data-i18n="sub">Palyginkite kainas ir nusipirkite tiesiai pas pardavėją.</p>
       <div class="modes" role="tablist">
-        <button type="button" class="mode active" id="modeSearch" role="tab" data-i18n="modeSearch">Ieškoti skrydžio</button>
+        <button type="button" class="mode active" id="modeDeals" role="tab" data-i18n="modeDeals">Pasiūlymai</button>
+        <button type="button" class="mode" id="modeSearch" role="tab" data-i18n="modeSearch">Ieškoti skrydžio</button>
         <button type="button" class="mode" id="modeExplore" role="tab" data-i18n="modeExplore">Kur nuskristi?</button>
         <button type="button" class="mode" id="modeWeekend" role="tab" data-i18n="modeWeekend">Savaitgalis</button>
       </div>
 
-      <form id="search" class="card" autocomplete="off">
+      <div id="deals" class="deals">
+        <p class="dealsintro" data-i18n="dealsIntro">Nežinai, kur skristi? Štai pigiausi skrydžiai dabar.</p>
+        <div class="dealrow"><span class="dlbl" data-i18n="from">Iš</span><div class="chips" id="dealFrom"></div></div>
+        <div class="dealrow"><div class="chips" id="dealOpts"></div></div>
+      </div>
+
+      <form id="search" class="card" autocomplete="off" hidden>
         <div class="trip">
           <label><input type="radio" name="trip" value="oneway" checked> <span data-i18n="oneway">Į vieną pusę</span></label>
           <label><input type="radio" name="trip" value="return"> <span data-i18n="roundtrip">Į abi puses</span></label>

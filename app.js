@@ -315,8 +315,9 @@ function render() {
 function setMode(name) {
   if (name === true) name = "explore";
   if (name === false) name = "search";
-  [["modeSearch", "search"], ["modeExplore", "explore"], ["modeWeekend", "weekend"]]
+  [["modeDeals", "deals"], ["modeSearch", "search"], ["modeExplore", "explore"], ["modeWeekend", "weekend"]]
     .forEach(([id, key]) => $(id).classList.toggle("active", key === name));
+  $("deals").hidden = name !== "deals";
   $("search").hidden = name !== "search";
   $("explore").hidden = name !== "explore";
   $("weekend").hidden = name !== "weekend";
@@ -330,7 +331,9 @@ function setMode(name) {
   $("status").textContent = "";
   $("demoNote").hidden = true;
   $("priceNote").hidden = true;
+  if (name === "deals") loadDeals();
 }
+$("modeDeals").addEventListener("click", () => setMode("deals"));
 $("modeSearch").addEventListener("click", () => setMode("search"));
 $("modeExplore").addEventListener("click", () => setMode("explore"));
 $("modeWeekend").addEventListener("click", () => setMode("weekend"));
@@ -394,6 +397,58 @@ document.querySelectorAll("#exSortChips .chip").forEach((c) =>
   })
 );
 
+// ---- „Pasiūlymai“: pigiausi skrydžiai iškart, be jokių laukų ----
+const DEAL_ORIGINS = ["VNO", "KUN", "PLQ", "RIX"];
+const dealPrefs = { from: "VNO", trip: "return", direct: false };
+try { Object.assign(dealPrefs, JSON.parse(localStorage.getItem("deals") || "{}")); } catch (e) { /* privatus režimas */ }
+if (!DEAL_ORIGINS.includes(dealPrefs.from)) dealPrefs.from = "VNO";
+let dealToken = 0;
+function renderDealChips() {
+  $("dealFrom").innerHTML = DEAL_ORIGINS.map((code) => {
+    const ap = AIRPORTS.find((x) => x.code === code);
+    return `<button type="button" class="chip${dealPrefs.from === code ? " active" : ""}" data-from="${code}">${esc(airportCity(ap))}</button>`;
+  }).join("");
+  $("dealOpts").innerHTML =
+    `<button type="button" class="chip${dealPrefs.trip === "return" ? " active" : ""}" data-trip="return">${esc(t("dealsRound"))}</button>` +
+    `<button type="button" class="chip${dealPrefs.trip === "oneway" ? " active" : ""}" data-trip="oneway">${esc(t("dealsOne"))}</button>` +
+    `<button type="button" class="chip${dealPrefs.direct ? " active" : ""}" data-direct="1">${dealPrefs.direct ? "✓ " : ""}${esc(t("dealsDirect"))}</button>`;
+}
+async function loadDeals() {
+  renderDealChips();
+  const token = ++dealToken;
+  const from = AIRPORTS.find((x) => x.code === dealPrefs.from);
+  $("results").innerHTML = "";
+  $("exToolbar").hidden = true;
+  $("status").textContent = t("searchingDest", { from: airportCity(from) });
+  let result;
+  try {
+    result = await exploreFlights({ from: from.code, date: "", trip: dealPrefs.trip, returnDate: "", budget: 0, direct: dealPrefs.direct, adults: 1 });
+  } catch (err) {
+    if (token === dealToken) $("status").textContent = t("failDest");
+    return;
+  }
+  if (token !== dealToken) return;               // tuo metu paspaustas kitas pasirinkimas
+  demo = result.demo;
+  lastNotice = result.notice || "";
+  $("demoNote").hidden = !demo;
+  setDemoNote();
+  const list = [...result.destinations].sort((x, y) => x.price - y.price).slice(0, 24);
+  $("priceNote").hidden = demo || list.length === 0;
+  exSort = "price";
+  document.querySelectorAll("#exSortChips .chip").forEach((x) => x.classList.toggle("active", x.dataset.sort === "price"));
+  exState = { kind: "explore", list, from, budget: 0, trip: dealPrefs.trip, adults: 1, deals: true };
+  renderExplore();
+}
+$("deals").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip");
+  if (!b) return;
+  if (b.dataset.from) dealPrefs.from = b.dataset.from;
+  if (b.dataset.trip) dealPrefs.trip = b.dataset.trip;
+  if (b.dataset.direct) dealPrefs.direct = !dealPrefs.direct;
+  try { localStorage.setItem("deals", JSON.stringify(dealPrefs)); } catch (err) { /* privatus režimas */ }
+  loadDeals();
+});
+
 function renderExplore() {
   shown = "explore";
   const { from, budget, kind } = exState;
@@ -405,7 +460,7 @@ function renderExplore() {
   $("exToolbar").hidden = list.length === 0;
   const budgetText = budget ? t("destBudget", { b: budget }) : "";
   $("status").textContent = list.length
-    ? t(weekend ? "weekendStatus" : "destStatus", { from: airportCity(from), budget: budgetText, n: list.length })
+    ? t(exState.deals ? "dealsStatus" : weekend ? "weekendStatus" : "destStatus", { from: airportCity(from), budget: budgetText, n: list.length })
     : t(weekend ? "noWeekend" : "noDest");
   const wd = (isoDay) => WEEKDAYS[LANG][new Date(`${isoDay.slice(0, 10)}T12:00:00Z`).getUTCDay()];
   $("results").innerHTML = list.map((o) => {
@@ -480,6 +535,7 @@ function setLang(code) {
   try { localStorage.setItem("lang", code); } catch (e) { /* privatus režimas */ }
   applyStatic();
   acClose();
+  renderDealChips();
   if (!$("demoNote").hidden) setDemoNote();
   if (shown === "search") {
     render();
@@ -493,3 +549,4 @@ document.querySelectorAll(".lang").forEach((b) => b.addEventListener("click", ()
 
 // Pradinis užpildymas pagal išsaugotą / naršyklės kalbą
 applyStatic();
+setMode("deals");

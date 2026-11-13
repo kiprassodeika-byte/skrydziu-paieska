@@ -495,3 +495,19 @@ body::before {
   background: url("/sky.jpg") center bottom / cover no-repeat, linear-gradient(180deg, #2F6BFF 0%, #5FB4FF 38%, #BDE8FF 70%, #F2FAFF 100%);
 }
 body::after { display: none; }
+
+/* Skirtukas „Pasiūlymai“: žetonai ir rezultatai be formos */
+.deals { max-width: 860px; margin: 0 auto 6px; text-align: center; }
+.dealsintro { margin: 0 0 14px; color: #fff; font-weight: 600; font-size: 16px; text-shadow: 0 1px 10px rgba(20, 40, 110, .5); }
+.dealrow { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.dlbl { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #fff; text-shadow: 0 1px 8px rgba(20, 40, 110, .45); }
+.deals .chip { padding: 9px 18px; font-size: 14px; font-weight: 600; }
+@media (max-width: 560px) {
+  .hero .modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .dealsintro { font-size: 15px; margin-bottom: 10px; }
+  .dealrow { gap: 6px; margin-bottom: 8px; }
+  .deals .chip { padding: 7px 13px; font-size: 13px; }
+  .deals .chips { gap: 6px; }
+}
