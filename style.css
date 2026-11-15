@@ -492,7 +492,7 @@ input[type=date] { min-width: 0; max-width: 100%; }
 
 /* Tikroviškas debesų fonas (sugeneruotas fraktaliniu triukšmu); gradientas lieka kaip atsarginis */
 body::before {
-  background: url("/sky.jpg?v=2") center bottom / cover no-repeat, linear-gradient(180deg, #2F6BFF 0%, #5FB4FF 38%, #BDE8FF 70%, #F2FAFF 100%);
+  background: url("/sky.jpg?v=3") center bottom / cover no-repeat, linear-gradient(180deg, #2F6BFF 0%, #5FB4FF 38%, #BDE8FF 70%, #F2FAFF 100%);
 }
 body::after { display: none; }
 
@@ -560,3 +560,8 @@ input:focus, select:focus { border-color: #D9A56B !important; box-shadow: 0 0 0 
 .trip label:has(input:focus-visible), .check:has(input:focus-visible) { outline-color: rgba(217,165,107,.9) !important; }
 .fb-card textarea:focus { border-color: #D9A56B !important; box-shadow: 0 0 0 4px rgba(217,165,107,.45) !important; }
 .day.sel, .day.cheap.sel { background: #7A4A22 !important; color: #FBF3E4 !important; }
+
+/* Fonas: saulėlydis iš lėktuvo (Wikimedia Commons, Pinakpani, CC BY-SA 4.0). Saulė lieka kairėje, ant telefono rodoma šiek tiek kairiau */
+body::before { background-position: 22% center !important; background-size: cover !important; }
+@media (min-width: 900px) { body::before { background-position: center 58% !important; } }
+#modeDeals, .hero { }
