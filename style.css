@@ -492,7 +492,7 @@ input[type=date] { min-width: 0; max-width: 100%; }
 
 /* Tikroviškas debesų fonas (sugeneruotas fraktaliniu triukšmu); gradientas lieka kaip atsarginis */
 body::before {
-  background: url("/sky.jpg") center bottom / cover no-repeat, linear-gradient(180deg, #2F6BFF 0%, #5FB4FF 38%, #BDE8FF 70%, #F2FAFF 100%);
+  background: url("/sky.jpg?v=2") center bottom / cover no-repeat, linear-gradient(180deg, #2F6BFF 0%, #5FB4FF 38%, #BDE8FF 70%, #F2FAFF 100%);
 }
 body::after { display: none; }
 
@@ -523,3 +523,40 @@ body::after { display: none; }
   .offer.dest.hasimg > .info { padding: 14px 16px 4px; }
   .offer.dest.hasimg > .buy { grid-column: auto; padding: 0 16px 16px; }
 }
+
+/* ===== Tema „Espresso“: šiltai rudas dangus su debesimis, kreminiai paspaudimai, balti/kreminiai langeliai ===== */
+:root {
+  --bg: #3a271c; --ink: #2B1D14; --muted: #7A6552; --line: #E4D8C6;
+  --brand: #A8703F; --brand-light: #D9A56B; --brand-ink: #7A4A22;
+  --gl: rgba(247,239,226,.90); --gl-strong: rgba(249,243,232,.96); --gl-edge: rgba(255,250,240,.95);
+  --gl-shadow: 0 10px 28px rgba(30,15,5,.30), inset 0 1px 0 rgba(255,255,255,.7); --gl-blur: blur(10px);
+}
+html { background: #5a3a28; }
+/* tekstas tiesiai ant rudo dangaus: kreminis */
+.dealsintro, .dlbl, form.card .field label, form.card .hint, form.card .field .link { color: #FBF3E4 !important; text-shadow: 0 1px 10px rgba(40,20,8,.65) !important; }
+/* režimų juosta */
+.modes { background: rgba(35,20,10,.32) !important; border-color: rgba(255,240,215,.28) !important; box-shadow: inset 0 2px 10px rgba(20,10,4,.35), 0 10px 24px rgba(30,15,5,.25) !important; }
+.mode { color: #FBF3E4 !important; text-shadow: 0 1px 6px rgba(40,20,8,.55) !important; }
+.mode:hover { background: rgba(255,240,215,.14) !important; }
+.mode.active { background: #FBF3E4 !important; color: #6B3E1D !important; text-shadow: none !important; box-shadow: 0 6px 16px rgba(20,10,4,.35) !important; }
+/* mygtukai ant dangaus: kreminiai; ant kreminių kortelių: rudi su kreminiu tekstu */
+.primary { background: #FBF3E4 !important; color: #6B3E1D !important; box-shadow: inset 0 1px 0 #fff, 0 10px 22px rgba(30,15,5,.35) !important; }
+.chip, .tb, .check { background: rgba(58,34,20,.42) !important; color: #FBF3E4 !important; border-color: rgba(255,240,215,.40) !important; text-shadow: none !important; box-shadow: none !important; }
+.chip.active, .tb.on, .check:has(input:checked) { background: #FBF3E4 !important; color: #6B3E1D !important; border-color: #fff !important; box-shadow: 0 6px 16px rgba(20,10,4,.30) !important; }
+.chip:hover { background: rgba(58,34,20,.58) !important; }
+.buy a { background: linear-gradient(180deg,#B57B47,#7A4A22) !important; color: #FBF3E4 !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 8px 18px rgba(60,30,10,.32) !important; }
+.price { color: #6B3E1D !important; }
+.tag { color: #6B3E1D !important; background: #F1E1C8 !important; border-color: #E0CBA8 !important; }
+.status:not(:empty), .live, .demo-note, .credit, .affiliate, .hero h1, .hero .sub, .brandmark { color: #2B1D14 !important; }
+.brandmark span { color: #2B1D14 !important; }
+input:focus, select:focus { border-color: #D9A56B !important; box-shadow: 0 0 0 4px rgba(217,165,107,.45) !important; }
+.fb-fab { color: #2B1D14 !important; }
+.lang.active, .lang[aria-pressed="true"] { background: #FBF3E4 !important; color: #6B3E1D !important; }
+
+/* Espresso: likę mėlyni švytėjimai ir pasirinkti perjungikliai pakeisti į šiltai rudą / kreminę */
+.trip label:has(input:checked) { background: #FBF3E4 !important; color: #6B3E1D !important; border-color: #fff !important; box-shadow: 0 6px 16px rgba(20,10,4,.30) !important; }
+.trip label { background: rgba(58,34,20,.42) !important; color: #FBF3E4 !important; border-color: rgba(255,240,215,.40) !important; box-shadow: none !important; }
+.trip label:has(input:checked) { background: #FBF3E4 !important; }
+.trip label:has(input:focus-visible), .check:has(input:focus-visible) { outline-color: rgba(217,165,107,.9) !important; }
+.fb-card textarea:focus { border-color: #D9A56B !important; box-shadow: 0 0 0 4px rgba(217,165,107,.45) !important; }
+.day.sel, .day.cheap.sel { background: #7A4A22 !important; color: #FBF3E4 !important; }
