@@ -263,6 +263,25 @@ document.querySelectorAll("#sortChips .chip").forEach((c) =>
 );
 $("directOnly").addEventListener("change", render);
 
+// Tiesioginė nuoroda pas aviakompaniją (be komisinių): tik tiesioginiams Ryanair / Wizz Air skrydžiams į abi puses,
+// kai API pateikė abu oro uostus (miesto kodas, pvz. BRU, aviakompanijai netinka: Ryanair skrenda į CRL).
+const LT_AIRPORTS = ["VNO", "KUN", "PLQ"];
+function airlineLink(o, pax) {
+  const from = o.originAirport || (LT_AIRPORTS.includes(o.origin || o.from) ? (o.origin || o.from) : "");
+  const to = o.destAirport;
+  if (!from || !to || !o.returnIso || o.stops !== 0 || (o.returnStops || 0) !== 0) return "";
+  const d = o.departIso.slice(0, 10), r = o.returnIso.slice(0, 10), n = Math.max(1, Math.min(9, pax || 1));
+  if (o.code === "FR") {
+    const q = `adults=${n}&teens=0&children=0&infants=0&dateOut=${d}&dateIn=${r}&isConnectedFlight=false&discount=0&promoCode=&isReturn=true&originIata=${from}&destinationIata=${to}`
+      + `&tpAdults=${n}&tpTeens=0&tpChildren=0&tpInfants=0&tpStartDate=${d}&tpEndDate=${r}&tpDiscount=0&tpPromoCode=&tpOriginIata=${from}&tpDestinationIata=${to}`;
+    return `<a class="alt" href="https://www.ryanair.com/${LANG === "en" ? "gb/en" : "lt/lt"}/trip/flights/select?${q}" target="_blank" rel="noopener noreferrer">${t("directAirline", { a: "Ryanair" })}</a>`;
+  }
+  if (o.code === "W6") {
+    return `<a class="alt" href="https://wizzair.com/en-gb/booking/select-flight/${from}/${to}/${d}/${r}/${n}/0/0/null" target="_blank" rel="noopener noreferrer">${t("directAirline", { a: "Wizz Air" })}</a>`;
+  }
+  return "";
+}
+
 function render() {
   shown = "search";
   let list = offers.filter((o) => !$("directOnly").checked || o.stops === 0);
@@ -295,6 +314,7 @@ function render() {
         <div class="price">${o.price} ${money(o)}</div>
         <div class="pl">${o.returnIso ? t("priceRound") : t("priceOne")}</div>
         <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? t("buyAirline", { a: esc(o.airline) }) : t("checkBuy")}</a>
+        ${demo ? "" : airlineLink(o, +$("adults").value || 1)}
       </div>
     </article>`;
 
@@ -477,6 +497,7 @@ function renderExplore() {
         <div class="price">${t("priceFrom", { p: `${o.price} ${money(o)}` })}</div>
         ${(roundTrip || pax > 1) ? `<div class="pl">${[roundTrip ? t("priceRound") : "", pax > 1 ? t("paxTotal", { n: pax }) : ""].filter(Boolean).join(" · ")}</div>` : ""}
         <a href="${safeUrl(o.url)}" target="_blank" rel="noopener noreferrer">${demo ? t("buyAirline", { a: esc(o.airline) }) : t("checkBuy")}</a>
+        ${demo ? "" : airlineLink({ ...o, origin: o.origin || from.code }, pax)}
       </div>
     </article>`;
   }).join("");

@@ -85,6 +85,10 @@ def normalize(item, origin, dest, adults):
         "currency": CURRENCY.upper(),
         "url": affiliate_link(origin, dest, item["departure_at"][:10], (item.get("return_at") or "")[:10], adults),
     }
+    for src, key in (("origin_airport", "originAirport"), ("destination_airport", "destAirport")):
+        code = str(item.get(src) or "").upper()
+        if IATA.match(code):
+            offer[key] = code  # konkretus oro uostas (miesto kodas, pvz. BRU, gali reikšti kelis oro uostus)
     if item["departure_at"].endswith("Z"):
         offer["timeUnknown"] = True  # UTC laikas – oro uosto vietos laiko nežinome
     else:

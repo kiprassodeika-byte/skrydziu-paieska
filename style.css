@@ -565,3 +565,8 @@ input:focus, select:focus { border-color: #D9A56B !important; box-shadow: 0 0 0 
 body::before { background-position: 22% center !important; background-size: cover !important; }
 @media (min-width: 900px) { body::before { background-position: center 58% !important; } }
 #modeDeals, .hero { }
+
+/* Antrinė nuoroda tiesiai pas aviakompaniją (be komisinių) */
+.buy a.alt { display: inline-block; margin: 8px 0 0 12px; padding: 4px 0; background: none !important; box-shadow: none !important; color: #6B4129 !important; font-weight: 500; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.buy a.alt:hover { transform: none; color: #2B1D14 !important; }
+@media (max-width: 560px) { .buy a.alt { margin: 0; } }
